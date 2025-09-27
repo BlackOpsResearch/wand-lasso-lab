@@ -181,22 +181,6 @@
 }
 
 @layer utilities {
-  .text-editor-accent {
-    @apply text-editor-accent;
-  }
-  
-  .bg-editor-bg {
-    @apply bg-editor-bg;
-  }
-  
-  .bg-editor-panel {
-    @apply bg-editor-panel;
-  }
-  
-  .bg-editor-toolbar {
-    @apply bg-editor-toolbar;
-  }
-  
   .shadow-tool {
     box-shadow: var(--shadow-tool);
   }
