@@ -12,7 +12,7 @@ import { LayerProvider } from './Context/LayerContext';
 export const ImageEditor: React.FC = () => {
   const [activeView, setActiveView] = useState<'main' | 'compare'>('main');
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
-  const [bottomDrawerOpen, setBottomDrawerOpen] = useState(false);
+  const [bottomDrawerOpen, setBottomDrawerOpen] = useState(true);
   const [specialPanelOpen, setSpecialPanelOpen] = useState(false);
 
   return (

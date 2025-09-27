@@ -1,21 +1,35 @@
-import React, { createContext, useContext, useState, ReactNode, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-export interface EditorImageData {
+export interface ImageInfo {
   id: string;
   name: string;
-  data: ImageData;
   width: number;
   height: number;
+  data: ImageData;
   url: string;
 }
 
+interface Layer {
+  id: string;
+  name: string;
+  visible: boolean;
+  opacity: number;
+  data: ImageData;
+  type: 'image' | 'mask' | 'adjustment';
+}
+
 interface ImageContextType {
-  currentImage: EditorImageData | null;
-  setCurrentImage: (image: EditorImageData | null) => void;
-  imageHistory: EditorImageData[];
-  canvasRef: React.RefObject<HTMLCanvasElement>;
-  loadImage: (file: File) => Promise<void>;
-  exportImage: (format: 'png' | 'jpg') => void;
+  currentImage: ImageInfo | null;
+  layers: Layer[];
+  activeLayerIndex: number;
+  setCurrentImage: (image: ImageInfo | null) => void;
+  addLayer: (layer: Layer) => void;
+  removeLayer: (layerId: string) => void;
+  updateLayer: (layerId: string, updates: Partial<Layer>) => void;
+  setActiveLayer: (index: number) => void;
+  loadImageFromFile: (file: File) => Promise<void>;
+  loadImageFromUrl: (url: string, name?: string) => Promise<void>;
+  loadDefaultImage: () => Promise<void>;
 }
 
 const ImageContext = createContext<ImageContextType | undefined>(undefined);
@@ -33,75 +47,156 @@ interface ImageProviderProps {
 }
 
 export const ImageProvider: React.FC<ImageProviderProps> = ({ children }) => {
-  const [currentImage, setCurrentImage] = useState<EditorImageData | null>(null);
-  const [imageHistory, setImageHistory] = useState<EditorImageData[]>([]);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [currentImage, setCurrentImage] = useState<ImageInfo | null>(null);
+  const [layers, setLayers] = useState<Layer[]>([]);
+  const [activeLayerIndex, setActiveLayerIndex] = useState<number>(0);
 
-  const loadImage = useCallback(async (file: File) => {
-    return new Promise<void>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = canvasRef.current;
-          if (!canvas) {
-            reject(new Error('Canvas not available'));
-            return;
-          }
-
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            reject(new Error('Canvas context not available'));
-            return;
-          }
-
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-
-          const imageData = ctx.getImageData(0, 0, img.width, img.height);
-          const newImage: EditorImageData = {
-            id: Date.now().toString(),
-            name: file.name,
-            data: imageData,
-            width: img.width,
-            height: img.height,
-            url: e.target?.result as string,
-          };
-
-          setCurrentImage(newImage);
-          setImageHistory(prev => [...prev, newImage]);
-          resolve();
+  const loadImageFromFile = async (file: File): Promise<void> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        
+        const imageData = ctx.getImageData(0, 0, img.width, img.height);
+        
+        const imageInfo: ImageInfo = {
+          id: crypto.randomUUID(),
+          name: file.name,
+          width: img.width,
+          height: img.height,
+          data: imageData,
+          url
         };
-        img.onerror = () => reject(new Error('Failed to load image'));
-        img.src = e.target?.result as string;
+        
+        setCurrentImage(imageInfo);
+        URL.revokeObjectURL(url);
+        resolve();
       };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
+      
+      img.src = url;
     });
-  }, []);
+  };
 
-  const exportImage = useCallback((format: 'png' | 'jpg') => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const loadImageFromUrl = async (url: string, name?: string): Promise<void> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        
+        const imageData = ctx.getImageData(0, 0, img.width, img.height);
+        
+        const imageInfo: ImageInfo = {
+          id: crypto.randomUUID(),
+          name: name || url.split('/').pop() || 'image',
+          width: img.width,
+          height: img.height,
+          data: imageData,
+          url
+        };
+        
+        setCurrentImage(imageInfo);
+        resolve();
+      };
+      
+      img.src = url;
+    });
+  };
 
-    const link = document.createElement('a');
-    link.download = `edited-image.${format}`;
-    link.href = canvas.toDataURL(`image/${format}`);
-    link.click();
-  }, []);
+  const loadDefaultImage = async (): Promise<void> => {
+    // Create a sample test image
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    
+    canvas.width = 400;
+    canvas.height = 300;
+    
+    // Create a test pattern
+    const gradient = ctx.createLinearGradient(0, 0, 400, 300);
+    gradient.addColorStop(0, '#ff6b6b');
+    gradient.addColorStop(0.3, '#4ecdc4');
+    gradient.addColorStop(0.6, '#45b7d1');
+    gradient.addColorStop(1, '#96ceb4');
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 400, 300);
+    
+    // Add some geometric shapes for testing
+    ctx.fillStyle = '#ff9999';
+    ctx.fillRect(50, 50, 100, 80);
+    
+    ctx.fillStyle = '#99ff99';
+    ctx.beginPath();
+    ctx.arc(250, 150, 60, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#9999ff';
+    ctx.beginPath();
+    ctx.moveTo(320, 80);
+    ctx.lineTo(380, 80);
+    ctx.lineTo(350, 140);
+    ctx.closePath();
+    ctx.fill();
+    
+    const imageData = ctx.getImageData(0, 0, 400, 300);
+    
+    const imageInfo: ImageInfo = {
+      id: crypto.randomUUID(),
+      name: 'Test Pattern',
+      width: 400,
+      height: 300,
+      data: imageData,
+      url: canvas.toDataURL()
+    };
+    
+    setCurrentImage(imageInfo);
+  };
+
+  const addLayer = (layer: Layer) => {
+    setLayers(prev => [...prev, layer]);
+  };
+
+  const removeLayer = (layerId: string) => {
+    setLayers(prev => prev.filter(layer => layer.id !== layerId));
+  };
+
+  const updateLayer = (layerId: string, updates: Partial<Layer>) => {
+    setLayers(prev => prev.map(layer => 
+      layer.id === layerId ? { ...layer, ...updates } : layer
+    ));
+  };
+
+  const setActiveLayer = (index: number) => {
+    setActiveLayerIndex(index);
+  };
 
   return (
-    <ImageContext.Provider
-      value={{
-        currentImage,
-        setCurrentImage,
-        imageHistory,
-        canvasRef,
-        loadImage,
-        exportImage,
-      }}
-    >
+    <ImageContext.Provider value={{
+      currentImage,
+      layers,
+      activeLayerIndex,
+      setCurrentImage,
+      addLayer,
+      removeLayer,
+      updateLayer,
+      setActiveLayer,
+      loadImageFromFile,
+      loadImageFromUrl,
+      loadDefaultImage,
+    }}>
       {children}
     </ImageContext.Provider>
   );

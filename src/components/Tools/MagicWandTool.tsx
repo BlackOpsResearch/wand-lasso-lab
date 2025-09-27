@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useToolContext } from '../Context/ToolContext';
+import { MagicWandSegmentation } from './SegmentationAlgorithms';
 
 interface MagicWandToolProps {
   canvasRef: React.RefObject<HTMLCanvasElement>;
@@ -12,80 +13,122 @@ export const MagicWandTool: React.FC<MagicWandToolProps> = ({
   overlayRef,
   mousePos,
 }) => {
-  const { toolSettings } = useToolContext();
+  const { 
+    toolSettings, 
+    setCurrentSelection, 
+    previewSelection, 
+    setPreviewSelection 
+  } = useToolContext();
+  
+  const [isHovering, setIsHovering] = useState(false);
 
-  const magicWandFloodFill = useCallback((
-    imageData: ImageData,
-    startX: number,
-    startY: number,
-    tolerance: number,
-    contiguous: boolean
-  ) => {
-    const { data, width, height } = imageData;
-    const visited = new Array(width * height).fill(false);
-    const result = new Array(width * height).fill(false);
-    
-    const getPixelIndex = (x: number, y: number) => (y * width + x) * 4;
-    const getPixelColor = (x: number, y: number) => {
-      const idx = getPixelIndex(x, y);
-      return [data[idx], data[idx + 1], data[idx + 2], data[idx + 3]];
-    };
+  // Preview on hover
+  const showPreview = useCallback((x: number, y: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    const colorDistance = (c1: number[], c2: number[]) => {
-      return Math.sqrt(
-        Math.pow(c1[0] - c2[0], 2) +
-        Math.pow(c1[1] - c2[1], 2) +
-        Math.pow(c1[2] - c2[2], 2)
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    try {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const selection = MagicWandSegmentation.floodFill(
+        imageData,
+        x,
+        y,
+        {
+          tolerance: toolSettings.magicWand.tolerance,
+          contiguous: toolSettings.magicWand.contiguous,
+          colorSpace: toolSettings.magicWand.colorSpace,
+          connectivity: toolSettings.magicWand.connectivity,
+          antiAlias: toolSettings.magicWand.antiAlias,
+        }
       );
-    };
+      
+      setPreviewSelection(selection);
+    } catch (error) {
+      console.error('Preview error:', error);
+    }
+  }, [canvasRef, toolSettings.magicWand, setPreviewSelection]);
 
-    const targetColor = getPixelColor(startX, startY);
-    const stack = [[startX, startY]];
+  // Render selection overlay
+  const renderSelection = useCallback((selection: boolean[], isPreview = false) => {
+    const overlay = overlayRef.current;
+    const canvas = canvasRef.current;
+    if (!overlay || !canvas) return;
+    
+    overlay.width = canvas.width;
+    overlay.height = canvas.height;
+    const overlayCtx = overlay.getContext('2d');
+    if (!overlayCtx) return;
 
-    while (stack.length > 0) {
-      const [x, y] = stack.pop()!;
-      if (x < 0 || x >= width || y < 0 || y >= height) continue;
-      
-      const pixelIndex = y * width + x;
-      if (visited[pixelIndex]) continue;
-      
-      const currentColor = getPixelColor(x, y);
-      const distance = colorDistance(currentColor, targetColor);
-      
-      if (distance <= tolerance) {
-        visited[pixelIndex] = true;
-        result[pixelIndex] = true;
-        
-        if (contiguous) {
-          // Add neighbors for contiguous selection
-          stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
-        }
+    overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+    
+    // Create selection visualization
+    const alpha = isPreview ? 0.2 : 0.4;
+    overlayCtx.fillStyle = `rgba(100, 200, 255, ${alpha})`;
+    
+    // Draw marching ants pattern
+    const time = Date.now() * 0.01;
+    overlayCtx.strokeStyle = 'rgba(100, 200, 255, 0.8)';
+    overlayCtx.lineWidth = 1;
+    overlayCtx.setLineDash([4, 4]);
+    overlayCtx.lineDashOffset = time % 8;
+
+    // Find and draw selection bounds
+    const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+    const selectedPixels: Array<{x: number, y: number}> = [];
+    
+    for (let i = 0; i < selection.length; i++) {
+      if (selection[i]) {
+        const x = i % canvas.width;
+        const y = Math.floor(i / canvas.width);
+        selectedPixels.push({x, y});
+        bounds.minX = Math.min(bounds.minX, x);
+        bounds.minY = Math.min(bounds.minY, y);
+        bounds.maxX = Math.max(bounds.maxX, x);
+        bounds.maxY = Math.max(bounds.maxY, y);
       }
     }
 
-    // For non-contiguous, select all similar colors
-    if (!contiguous) {
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          const pixelIndex = y * width + x;
-          if (!visited[pixelIndex]) {
-            const currentColor = getPixelColor(x, y);
-            const distance = colorDistance(currentColor, targetColor);
-            if (distance <= tolerance) {
-              result[pixelIndex] = true;
-            }
-          }
-        }
-      }
+    // Fill selected pixels
+    for (const pixel of selectedPixels) {
+      overlayCtx.fillRect(pixel.x, pixel.y, 1, 1);
     }
 
-    return result;
-  }, []);
+    // Draw marching ants border
+    if (bounds.minX < Infinity) {
+      overlayCtx.strokeRect(bounds.minX - 0.5, bounds.minY - 0.5, 
+                           bounds.maxX - bounds.minX + 1, 
+                           bounds.maxY - bounds.minY + 1);
+    }
+  }, [overlayRef, canvasRef]);
 
-  // Handle click events
+  // Handle mouse events
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) * (canvas.width / rect.width));
+      const y = Math.floor((e.clientY - rect.top) * (canvas.height / rect.height));
+      
+      if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
+        setIsHovering(true);
+        // Throttle preview updates
+        const throttleId = setTimeout(() => showPreview(x, y), 50);
+        return () => clearTimeout(throttleId);
+      } else {
+        setIsHovering(false);
+        setPreviewSelection(null);
+      }
+    };
+
+    const handleMouseLeave = () => {
+      setIsHovering(false);
+      setPreviewSelection(null);
+    };
 
     const handleClick = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
@@ -95,42 +138,72 @@ export const MagicWandTool: React.FC<MagicWandToolProps> = ({
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const selection = magicWandFloodFill(
-        imageData,
-        x,
-        y,
-        toolSettings.magicWand.tolerance,
-        toolSettings.magicWand.contiguous
-      );
+      try {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const selection = MagicWandSegmentation.floodFill(
+          imageData,
+          x,
+          y,
+          {
+            tolerance: toolSettings.magicWand.tolerance,
+            contiguous: toolSettings.magicWand.contiguous,
+            colorSpace: toolSettings.magicWand.colorSpace,
+            connectivity: toolSettings.magicWand.connectivity,
+            antiAlias: toolSettings.magicWand.antiAlias,
+          }
+        );
 
-      // Visualize selection on overlay
-      const overlay = overlayRef.current;
-      if (!overlay) return;
-      
-      overlay.width = canvas.width;
-      overlay.height = canvas.height;
-      const overlayCtx = overlay.getContext('2d');
-      if (!overlayCtx) return;
-
-      overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
-      overlayCtx.fillStyle = 'rgba(100, 200, 255, 0.3)';
-      overlayCtx.strokeStyle = 'rgba(100, 200, 255, 0.8)';
-      overlayCtx.lineWidth = 1;
-
-      // Draw marching ants effect
-      for (let i = 0; i < selection.length; i++) {
-        if (selection[i]) {
-          const x = i % canvas.width;
-          const y = Math.floor(i / canvas.width);
-          overlayCtx.fillRect(x, y, 1, 1);
+        // Calculate bounds
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (let i = 0; i < selection.length; i++) {
+          if (selection[i]) {
+            const px = i % canvas.width;
+            const py = Math.floor(i / canvas.width);
+            minX = Math.min(minX, px);
+            minY = Math.min(minY, py);
+            maxX = Math.max(maxX, px);
+            maxY = Math.max(maxY, py);
+          }
         }
+
+        const newSelection = {
+          id: crypto.randomUUID(),
+          pixels: selection,
+          bounds: {
+            x: minX === Infinity ? 0 : minX,
+            y: minY === Infinity ? 0 : minY,
+            width: maxX === -Infinity ? 0 : maxX - minX + 1,
+            height: maxY === -Infinity ? 0 : maxY - minY + 1,
+          },
+          timestamp: Date.now(),
+        };
+        
+        setCurrentSelection(newSelection);
+        setPreviewSelection(null);
+        
+        console.log(`Magic Wand: Selected ${selection.filter(Boolean).length} pixels`);
+      } catch (error) {
+        console.error('Magic Wand error:', error);
       }
     };
 
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
     canvas.addEventListener('click', handleClick);
-    return () => canvas.removeEventListener('click', handleClick);
-  }, [canvasRef, overlayRef, magicWandFloodFill, toolSettings.magicWand]);
+    
+    return () => {
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
+      canvas.removeEventListener('click', handleClick);
+    };
+  }, [canvasRef, toolSettings.magicWand, showPreview, setCurrentSelection, setPreviewSelection]);
 
-  return null; // This component doesn't render UI directly
+  // Render current selection or preview
+  useEffect(() => {
+    if (previewSelection) {
+      renderSelection(previewSelection, true);
+    }
+  }, [previewSelection, renderSelection]);
+
+  return null;
 };

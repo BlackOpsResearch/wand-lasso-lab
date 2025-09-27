@@ -24,12 +24,12 @@ const presets = [
 ];
 
 export const BottomDrawer: React.FC<BottomDrawerProps> = ({ onClose }) => {
-  const { loadImage } = useImageContext();
+  const { loadImageFromFile, loadDefaultImage } = useImageContext();
   const [dragOver, setDragOver] = useState(false);
 
   const handleFileUpload = (file: File) => {
     if (file.type.startsWith('image/')) {
-      loadImage(file);
+      loadImageFromFile(file);
     }
   };
 
