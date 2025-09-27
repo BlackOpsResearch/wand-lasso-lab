@@ -19,6 +19,28 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        
+        /* Professional Editor Colors */
+        "editor-bg": "hsl(var(--editor-bg))",
+        "editor-panel": "hsl(var(--editor-panel))",
+        "editor-toolbar": "hsl(var(--editor-toolbar))",
+        "editor-accent": "hsl(var(--editor-accent))",
+        "editor-accent-hover": "hsl(var(--editor-accent-hover))",
+        
+        "canvas-bg": "hsl(var(--canvas-bg))",
+        "canvas-border": "hsl(var(--canvas-border))",
+        "canvas-grid": "hsl(var(--canvas-grid))",
+        
+        "wand-primary": "hsl(var(--wand-primary))",
+        "wand-secondary": "hsl(var(--wand-secondary))",
+        "lasso-primary": "hsl(var(--lasso-primary))",
+        "lasso-secondary": "hsl(var(--lasso-secondary))",
+        
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        error: "hsl(var(--error))",
+        info: "hsl(var(--info))",
+        
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",

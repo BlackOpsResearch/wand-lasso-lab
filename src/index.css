@@ -2,41 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Professional Image Editor Design System - All colors MUST be HSL */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
+    /* Core Editor Colors */
+    --background: 220 13% 18%;
+    --foreground: 220 9% 95%;
+    
+    /* Professional Editor Palette */
+    --editor-bg: 220 13% 12%;
+    --editor-panel: 220 13% 16%;
+    --editor-toolbar: 220 13% 20%;
+    --editor-accent: 200 95% 55%;
+    --editor-accent-hover: 200 95% 65%;
+    
+    /* Canvas & Image Areas */
+    --canvas-bg: 0 0% 100%;
+    --canvas-border: 220 13% 25%;
+    --canvas-grid: 0 0% 90%;
+    
+    /* Tool Colors */
+    --wand-primary: 45 93% 58%;
+    --wand-secondary: 45 93% 68%;
+    --lasso-primary: 280 100% 70%;
+    --lasso-secondary: 280 100% 80%;
+    
+    /* Status & Feedback */
+    --success: 142 76% 36%;
+    --warning: 45 93% 58%;
+    --error: 0 84% 60%;
+    --info: 200 95% 55%;
+    
+    /* Professional UI Elements */
+    --card: 220 13% 16%;
+    --card-foreground: 220 9% 95%;
+    --popover: 220 13% 20%;
+    --popover-foreground: 220 9% 95%;
+    
+    --primary: 200 95% 55%;
+    --primary-foreground: 220 13% 12%;
+    --secondary: 220 13% 25%;
+    --secondary-foreground: 220 9% 95%;
+    
+    --muted: 220 13% 20%;
+    --muted-foreground: 220 9% 70%;
+    --accent: 220 13% 25%;
+    --accent-foreground: 220 9% 95%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 220 9% 95%;
+    
+    --border: 220 13% 25%;
+    --input: 220 13% 20%;
+    --ring: 200 95% 55%;
+    
+    /* Advanced Gradients */
+    --gradient-editor: linear-gradient(135deg, hsl(var(--editor-bg)), hsl(var(--editor-panel)));
+    --gradient-tool: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--editor-accent)));
+    --gradient-canvas: linear-gradient(45deg, hsl(var(--canvas-bg)), hsl(var(--canvas-grid)));
+    
+    /* Shadows & Effects */
+    --shadow-tool: 0 4px 20px hsl(var(--primary) / 0.3);
+    --shadow-panel: 0 8px 32px hsl(220 13% 5% / 0.4);
+    --shadow-canvas: 0 2px 16px hsl(220 13% 5% / 0.2);
+    
+    /* Animation Variables */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -101,5 +136,103 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  /* Professional Editor Components */
+  .editor-toolbar {
+    @apply bg-editor-toolbar border-border shadow-[var(--shadow-panel)];
+  }
+  
+  .editor-panel {
+    @apply bg-editor-panel border-border shadow-[var(--shadow-panel)];
+  }
+  
+  .canvas-container {
+    @apply bg-canvas-bg border-canvas-border shadow-[var(--shadow-canvas)];
+  }
+  
+  .tool-button {
+    @apply transition-[var(--transition-smooth)] hover:shadow-[var(--shadow-tool)];
+  }
+  
+  .tool-button-wand {
+    @apply bg-gradient-to-br from-wand-primary to-wand-secondary;
+  }
+  
+  .tool-button-lasso {
+    @apply bg-gradient-to-br from-lasso-primary to-lasso-secondary;
+  }
+  
+  .professional-card {
+    @apply bg-card border-border rounded-[var(--radius)] shadow-[var(--shadow-panel)];
+  }
+  
+  /* Animation Classes */
+  .animate-tool-select {
+    animation: tool-select 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .animate-panel-slide {
+    animation: panel-slide 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+}
+
+@layer utilities {
+  .text-editor-accent {
+    @apply text-editor-accent;
+  }
+  
+  .bg-editor-bg {
+    @apply bg-editor-bg;
+  }
+  
+  .bg-editor-panel {
+    @apply bg-editor-panel;
+  }
+  
+  .bg-editor-toolbar {
+    @apply bg-editor-toolbar;
+  }
+  
+  .shadow-tool {
+    box-shadow: var(--shadow-tool);
+  }
+  
+  .shadow-panel {
+    box-shadow: var(--shadow-panel);
+  }
+  
+  .shadow-canvas {
+    box-shadow: var(--shadow-canvas);
+  }
+}
+
+/* Keyframes for Professional Animations */
+@keyframes tool-select {
+  0% {
+    transform: scale(1);
+    box-shadow: var(--shadow-tool);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-tool), 0 0 0 4px hsl(var(--primary) / 0.2);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: var(--shadow-tool);
+  }
+}
+
+@keyframes panel-slide {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
   }
 }
