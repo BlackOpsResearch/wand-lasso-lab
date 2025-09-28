@@ -80,6 +80,16 @@ export const Canvas: React.FC = () => {
           onMouseMove={handleMouseMove}
         />
         
+        {/* Tool Overlay Canvas */}
+        <canvas
+          ref={overlayRef}
+          className="absolute top-0 left-0 pointer-events-none"
+          style={{
+            width: '100%',
+            height: '100%',
+          }}
+        />
+        
         {/* Selection Overlay */}
         <CanvasRenderer
           width={currentImage.width}
