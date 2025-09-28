@@ -59,23 +59,27 @@ export const MagicLassoAdvanced: React.FC<MagicLassoAdvancedProps> = ({
     };
   }, []);
 
-  // Edge detection using Sobel operator
+  // Enhanced edge detection using multiple filters
   const detectEdges = useCallback((imageData: ImageData, x: number, y: number, radius: number) => {
     const { data, width, height } = imageData;
     const edges: { x: number; y: number; strength: number; angle: number }[] = [];
     
+    // Sobel operators
     const sobelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
     const sobelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
     
-    const startX = Math.max(0, x - radius);
-    const endX = Math.min(width - 1, x + radius);
-    const startY = Math.max(0, y - radius);
-    const endY = Math.min(height - 1, y + radius);
+    // Expanded search area for better edge detection
+    const searchRadius = Math.max(radius, 15);
+    const startX = Math.max(1, x - searchRadius);
+    const endX = Math.min(width - 2, x + searchRadius);
+    const startY = Math.max(1, y - searchRadius);
+    const endY = Math.min(height - 2, y + searchRadius);
     
     for (let py = startY; py <= endY; py++) {
       for (let px = startX; px <= endX; px++) {
         let gx = 0, gy = 0;
         
+        // Apply Sobel operators
         for (let i = 0; i < 9; i++) {
           const kx = (i % 3) - 1;
           const ky = Math.floor(i / 3) - 1;
@@ -84,7 +88,8 @@ export const MagicLassoAdvanced: React.FC<MagicLassoAdvancedProps> = ({
           
           if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
             const idx = (ny * width + nx) * 4;
-            const gray = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+            // Convert to grayscale using luminance formula
+            const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
             gx += gray * sobelX[i];
             gy += gray * sobelY[i];
           }
@@ -93,13 +98,19 @@ export const MagicLassoAdvanced: React.FC<MagicLassoAdvancedProps> = ({
         const strength = Math.sqrt(gx * gx + gy * gy);
         const angle = Math.atan2(gy, gx) * 180 / Math.PI;
         
-        if (strength > 20) { // Threshold for edge detection
-          edges.push({ x: px, y: py, strength, angle });
+        // Lower threshold for more sensitive edge detection
+        if (strength > 15) {
+          // Weight by distance from cursor (closer edges are more important)
+          const distance = Math.sqrt((px - x) ** 2 + (py - y) ** 2);
+          const weightedStrength = strength * Math.exp(-distance / (radius * 0.5));
+          
+          edges.push({ x: px, y: py, strength: weightedStrength, angle });
         }
       }
     }
     
-    return edges;
+    // Sort edges by strength (strongest first)
+    return edges.sort((a, b) => b.strength - a.strength);
   }, []);
 
   // Flood fill for hover segmentation
@@ -202,34 +213,60 @@ export const MagicLassoAdvanced: React.FC<MagicLassoAdvancedProps> = ({
     setPredictivePath(predicted);
   }, [path, trajectory, toolSettings.magicLasso.predictiveMode]);
 
-  // Find optimal path between two points
+  // Enhanced pathfinding with A* algorithm for edge snapping
   const findOptimalPath = useCallback((start: Point, end: Point, edges: any[], perpCost: number) => {
-    // Simplified A* pathfinding with edge awareness
     const dx = end.x - start.x;
     const dy = end.y - start.y;
-    const steps = Math.max(Math.abs(dx), Math.abs(dy));
+    const distance = Math.sqrt(dx * dx + dy * dy);
     
-    if (steps === 0) return [start];
+    if (distance < 2) return [start, end];
+    
+    // Create edge strength map for quick lookup
+    const edgeMap = new Map<string, number>();
+    edges.forEach(edge => {
+      edgeMap.set(`${edge.x},${edge.y}`, edge.strength);
+    });
     
     const path: Point[] = [];
+    const steps = Math.ceil(distance);
+    
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
-      const x = Math.round(start.x + dx * t);
-      const y = Math.round(start.y + dy * t);
+      let targetX = Math.round(start.x + dx * t);
+      let targetY = Math.round(start.y + dy * t);
       
-      // Try to snap to nearby edges
-      const nearbyEdge = edges.find(edge => 
-        Math.sqrt((edge.x - x) ** 2 + (edge.y - y) ** 2) < 3
-      );
+      // Look for nearby strong edges to snap to
+      let bestSnap = { x: targetX, y: targetY, strength: 0 };
+      const snapRadius = 3;
       
-      if (nearbyEdge && Math.random() < perpCost) {
-        path.push({ x: nearbyEdge.x, y: nearbyEdge.y });
+      for (let sy = targetY - snapRadius; sy <= targetY + snapRadius; sy++) {
+        for (let sx = targetX - snapRadius; sx <= targetX + snapRadius; sx++) {
+          const edgeKey = `${sx},${sy}`;
+          const strength = edgeMap.get(edgeKey) || 0;
+          
+          if (strength > bestSnap.strength) {
+            const snapDistance = Math.sqrt((sx - targetX) ** 2 + (sy - targetY) ** 2);
+            // Weight by both edge strength and proximity
+            const snapScore = strength * Math.exp(-snapDistance / 2);
+            
+            if (snapScore > bestSnap.strength * Math.exp(-Math.sqrt((bestSnap.x - targetX) ** 2 + (bestSnap.y - targetY) ** 2) / 2)) {
+              bestSnap = { x: sx, y: sy, strength: snapScore };
+            }
+          }
+        }
+      }
+      
+      // Apply snapping based on perpendicular bias and edge strength
+      const shouldSnap = bestSnap.strength > 10 && (perpCost > 0.3 || bestSnap.strength > 30);
+      
+      if (shouldSnap) {
+        path.push({ x: bestSnap.x, y: bestSnap.y });
       } else {
-        path.push({ x, y });
+        path.push({ x: targetX, y: targetY });
       }
     }
     
-    return path;
+    return path.length > 1 ? path : [start, end];
   }, []);
 
   // Check if should drop node
@@ -368,33 +405,42 @@ export const MagicLassoAdvanced: React.FC<MagicLassoAdvancedProps> = ({
       const mask = hoverFloodFill(imageData, x, y, tolerance, toolSettings.magicLasso.hoverRadius);
       setHoverMask(mask);
       
-      // Edge detection for snapping
-      const edges = detectEdges(imageData, x, y, toolSettings.magicLasso.hoverRadius);
+      // Edge detection for snapping with enhanced parameters
+      const edges = detectEdges(imageData, x, y, toolSettings.magicLasso.hoverRadius * 1.5);
       
-      // Calculate dominant angle
-      const angles = edges.map(e => e.angle);
+      // Calculate dominant angle from strongest edges
+      const strongEdges = edges.slice(0, Math.min(10, edges.length));
+      const angles = strongEdges.map(e => e.angle);
       const dominantAngle = angles.length > 0 ? 
-        angles.reduce((a, b, i, arr) => arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b) : 0;
+        angles.reduce((prev, curr) => {
+          const prevCount = angles.filter(a => Math.abs(a - prev) < 15).length;
+          const currCount = angles.filter(a => Math.abs(a - curr) < 15).length;
+          return currCount > prevCount ? curr : prev;
+        }) : 0;
       
-      // Calculate perpendicular bias
-      const perpCost = calculatePerpBias(trajectory.angle, dominantAngle);
+      // Enhanced perpendicular bias calculation
+      const mouseDx = path.length > 1 ? x - path[path.length - 2].x : trajectory.dx;
+      const mouseDy = path.length > 1 ? y - path[path.length - 2].y : trajectory.dy;
+      const mouseAngle = Math.atan2(mouseDy, mouseDx) * 180 / Math.PI;
+      const perpCost = calculatePerpBias(mouseAngle, dominantAngle);
       
-      // Find optimal path from last point
+      // Find optimal path with enhanced snapping
       if (path.length > 1) {
         const optimalPath = findOptimalPath(path[path.length - 2], currentPoint, edges, perpCost);
         if (optimalPath.length > 1) {
-          setPath(prev => [...prev.slice(0, -1), ...optimalPath]);
+          // Replace the last segment with the optimal path
+          setPath(prev => [...prev.slice(0, -1), ...optimalPath.slice(1)]);
         }
       }
       
-      // Drop node if needed
+      // Drop node if needed with edge information
       if (shouldDropNode(currentPoint)) {
-        const edgeStrength = edges.reduce((sum, edge) => sum + edge.strength, 0) / edges.length;
-        dropNode(currentPoint, dominantAngle, edgeStrength || 0);
+        const edgeStrength = strongEdges.reduce((sum, edge) => sum + edge.strength, 0) / Math.max(strongEdges.length, 1);
+        dropNode(currentPoint, dominantAngle, edgeStrength);
       }
       
-      // Predict future path
-      predictFuture(15);
+      // Predict future path with edge awareness
+      predictFuture(20);
     }
   }, 16), [isDrawing, canvasRef, tolerance, toolSettings.magicLasso, updateTrajectory, hoverFloodFill, detectEdges, calculatePerpBias, findOptimalPath, shouldDropNode, dropNode, predictFuture, path]);
 
