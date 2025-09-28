@@ -42,7 +42,7 @@ export const ImageEditor: React.FC = () => {
                   {/* Right Panel */}
                   {rightPanelOpen && (
                     <div className="w-80 animate-panel-slide">
-                      <RightPanel onClose={() => setRightPanelOpen(false)} />
+                      <RightPanel />
                     </div>
                   )}
                 </div>

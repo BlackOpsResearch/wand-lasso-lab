@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useImageContext } from '../Context/ImageContext';
 import { useToolContext } from '../Context/ToolContext';
 import { MagicWandTool } from '../Tools/MagicWandTool';
-import { MagicLassoTool } from '../Tools/MagicLassoTool';
+import { MagicLassoAdvanced } from '../Tools/MagicLassoAdvanced';
 import { CanvasRenderer } from './CanvasRenderer';
 
 export const Canvas: React.FC = () => {
@@ -96,7 +96,7 @@ export const Canvas: React.FC = () => {
         )}
         
         {activeTool === 'magicLasso' && (
-          <MagicLassoTool 
+          <MagicLassoAdvanced 
             canvasRef={canvasRef}
             overlayRef={overlayRef}
             mousePos={mousePos}

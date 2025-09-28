@@ -17,6 +17,14 @@ interface ToolSettings {
     frequency: number;
     elasticity: number;
     nodeDropTime: number;
+    perpBias: number;
+    falloffSigma: number;
+    minDropDistance: number;
+    maxSegmentLength: number;
+    cornerThreshold: number;
+    predictiveMode: boolean;
+    hoverRadius: number;
+    tolerance: number;
   };
   brush: {
     size: number;
@@ -82,7 +90,15 @@ export const ToolProvider: React.FC<ToolProviderProps> = ({ children }) => {
       contrast: 40,
       frequency: 57,
       elasticity: 0.5,
-      nodeDropTime: 200,
+      nodeDropTime: 150,
+      perpBias: 0.8,
+      falloffSigma: 20,
+      minDropDistance: 3,
+      maxSegmentLength: 10,
+      cornerThreshold: 45,
+      predictiveMode: true,
+      hoverRadius: 20,
+      tolerance: 30,
     },
     brush: {
       size: 5,
