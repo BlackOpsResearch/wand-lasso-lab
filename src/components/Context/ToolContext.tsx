@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-export type ToolType = 'magicWand' | 'magicLasso' | 'brush' | 'eraser' | 'eyedropper' | 'zoom' | 'hand';
+export type ToolType = 'select' | 'magicWand' | 'magicLasso' | 'nanoBanana' | 'brush' | 'eraser' | 'layers' | 'eyedropper' | 'zoom' | 'hand';
 
 interface ToolSettings {
   magicWand: {

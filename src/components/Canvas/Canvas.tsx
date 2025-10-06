@@ -3,6 +3,7 @@ import { useImageContext } from '../Context/ImageContext';
 import { useToolContext } from '../Context/ToolContext';
 import { MagicWandTool } from '../Tools/MagicWandTool';
 import { MagicLassoAdvanced } from '../Tools/MagicLassoAdvanced';
+import { NanoBananaTool } from '../Tools/NanoBananaTool';
 import { CanvasRenderer } from './CanvasRenderer';
 
 export const Canvas: React.FC = () => {
@@ -111,6 +112,10 @@ export const Canvas: React.FC = () => {
             overlayRef={overlayRef}
             mousePos={mousePos}
           />
+        )}
+
+        {activeTool === 'nanoBanana' && (
+          <NanoBananaTool canvasRef={canvasRef} />
         )}
       </div>
 

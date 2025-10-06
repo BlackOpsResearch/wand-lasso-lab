@@ -17,6 +17,7 @@ const tools = [
   { id: 'select' as ToolType, icon: MousePointer, label: 'Select Tool', shortcut: 'V' },
   { id: 'magicWand' as ToolType, icon: Sparkles, label: 'Magic Wand', shortcut: 'W' },
   { id: 'magicLasso' as ToolType, icon: Lasso, label: 'Magic Lasso', shortcut: 'L' },
+  { id: 'nanoBanana' as ToolType, icon: Sparkles, label: 'Nano Banana AI', shortcut: 'N' },
   { id: 'layers' as ToolType, icon: Layers, label: 'Layers', shortcut: 'F7' },
   { id: 'eyedropper' as ToolType, icon: Droplet, label: 'Eyedropper', shortcut: 'I' },
   { id: 'zoom' as ToolType, icon: ZoomIn, label: 'Zoom', shortcut: 'Z' },
@@ -29,6 +30,7 @@ export const LeftToolbar: React.FC = () => {
     if (activeTool === toolId) {
       if (toolId === 'magicWand') return 'wand';
       if (toolId === 'magicLasso') return 'lasso';
+      if (toolId === 'nanoBanana') return 'default';
       return 'default';
     }
     return 'ghost';
@@ -49,6 +51,7 @@ export const LeftToolbar: React.FC = () => {
                   ${activeTool === tool.id ? 'animate-tool-select' : ''}
                   ${tool.id === 'magicWand' && activeTool === tool.id ? 'tool-button-wand' : ''}
                   ${tool.id === 'magicLasso' && activeTool === tool.id ? 'tool-button-lasso' : ''}
+                  ${tool.id === 'nanoBanana' && activeTool === tool.id ? 'bg-gradient-to-br from-editor-accent to-primary' : ''}
                 `}
                 onClick={() => setActiveTool(tool.id)}
               >

@@ -72,8 +72,15 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   return (
     <canvas
       ref={overlayRef}
+      width={width}
+      height={height}
       className="absolute top-0 left-0 pointer-events-none"
-      style={{ zIndex: 10 }}
+      style={{
+        width: '100%',
+        height: '100%',
+        imageRendering: 'pixelated',
+        zIndex: 10
+      }}
     />
   );
 };

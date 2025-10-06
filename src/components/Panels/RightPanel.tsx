@@ -379,49 +379,77 @@ export const RightPanel: React.FC = () => {
 
       {/* Quick Actions */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
             <Layers className="w-4 h-4" />
             Quick Actions
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <Button variant="outline" size="sm" className="w-full">
-            Clear Selection
-          </Button>
-          <Button variant="outline" size="sm" className="w-full">
-            Invert Selection
-          </Button>
-          <Button variant="outline" size="sm" className="w-full">
-            Grow Selection
-          </Button>
-          <Button variant="outline" size="sm" className="w-full">
-            Shrink Selection
-          </Button>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" size="sm" className="h-9">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Clear
+            </Button>
+            <Button variant="outline" size="sm" className="h-9">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Invert
+            </Button>
+            <Button variant="outline" size="sm" className="h-9">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Grow
+            </Button>
+            <Button variant="outline" size="sm" className="h-9">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+              </svg>
+              Shrink
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
       {/* Presets */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
             <Palette className="w-4 h-4" />
             Presets
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <Button variant="ghost" size="sm" className="w-full justify-start">
-            Green Screen
-          </Button>
-          <Button variant="ghost" size="sm" className="w-full justify-start">
-            Portrait Subject
-          </Button>
-          <Button variant="ghost" size="sm" className="w-full justify-start">
-            Sky Replacement
-          </Button>
-          <Button variant="ghost" size="sm" className="w-full justify-start">
-            Object Isolation
-          </Button>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="ghost" size="sm" className="h-9 justify-start">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+              </svg>
+              Green
+            </Button>
+            <Button variant="ghost" size="sm" className="h-9 justify-start">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Portrait
+            </Button>
+            <Button variant="ghost" size="sm" className="h-9 justify-start">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+              </svg>
+              Sky
+            </Button>
+            <Button variant="ghost" size="sm" className="h-9 justify-start">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+              Object
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
