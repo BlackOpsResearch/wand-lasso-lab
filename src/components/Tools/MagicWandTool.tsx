@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useToolContext } from '../Context/ToolContext';
+import { useLayerContext } from '../Context/LayerContext';
 import { MagicWandSegmentation } from './SegmentationAlgorithms';
 
 interface MagicWandToolProps {
@@ -15,12 +16,15 @@ export const MagicWandTool: React.FC<MagicWandToolProps> = ({
 }) => {
   const { 
     toolSettings, 
+    currentSelection,
     setCurrentSelection, 
     previewSelection, 
     setPreviewSelection 
   } = useToolContext();
+  const { addLayerFromSelection } = useLayerContext();
   
   const [isHovering, setIsHovering] = useState(false);
+  const [shiftClickedSegments, setShiftClickedSegments] = useState<boolean[]>([]);
 
   // Preview on hover
   const showPreview = useCallback((x: number, y: number) => {
@@ -52,7 +56,7 @@ export const MagicWandTool: React.FC<MagicWandToolProps> = ({
   }, [canvasRef, toolSettings.magicWand, setPreviewSelection]);
 
   // Render selection overlay
-  const renderSelection = useCallback((selection: boolean[], isPreview = false) => {
+  const renderSelection = useCallback((selection: boolean[], isPreview = false, showSelected = false) => {
     const overlay = overlayRef.current;
     const canvas = canvasRef.current;
     if (!overlay || !canvas) return;
@@ -64,7 +68,32 @@ export const MagicWandTool: React.FC<MagicWandToolProps> = ({
 
     overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
     
-    // Create selection visualization
+    // Show both preview and selected if needed
+    if (showSelected && currentSelection) {
+      const selectedAlpha = 0.4;
+      overlayCtx.fillStyle = `rgba(100, 200, 255, ${selectedAlpha})`;
+      for (let i = 0; i < currentSelection.pixels.length; i++) {
+        if (currentSelection.pixels[i]) {
+          const x = i % canvas.width;
+          const y = Math.floor(i / canvas.width);
+          overlayCtx.fillRect(x, y, 1, 1);
+        }
+      }
+    }
+    
+    // Show shift-clicked segments (no overlaps)
+    if (shiftClickedSegments.length > 0) {
+      overlayCtx.fillStyle = 'rgba(255, 200, 100, 0.4)';
+      for (let i = 0; i < shiftClickedSegments.length; i++) {
+        if (shiftClickedSegments[i]) {
+          const x = i % canvas.width;
+          const y = Math.floor(i / canvas.width);
+          overlayCtx.fillRect(x, y, 1, 1);
+        }
+      }
+    }
+    
+    // Create preview visualization
     const alpha = isPreview ? 0.2 : 0.4;
     overlayCtx.fillStyle = `rgba(100, 200, 255, ${alpha})`;
     
@@ -102,7 +131,7 @@ export const MagicWandTool: React.FC<MagicWandToolProps> = ({
                            bounds.maxX - bounds.minX + 1, 
                            bounds.maxY - bounds.minY + 1);
     }
-  }, [overlayRef, canvasRef]);
+  }, [overlayRef, canvasRef, currentSelection, shiftClickedSegments]);
 
   // Handle mouse events
   useEffect(() => {
@@ -177,9 +206,36 @@ export const MagicWandTool: React.FC<MagicWandToolProps> = ({
           },
           timestamp: Date.now(),
         };
-        
+
+        // Ctrl+Click: Create layer from segment
+        if (e.ctrlKey || e.metaKey) {
+          addLayerFromSelection(`Segment ${Date.now()}`, selection, canvasRef);
+          console.log(`Magic Wand: Created layer from ${selection.filter(Boolean).length} pixels`);
+          return;
+        }
+
+        // Shift+Click: Add to combined segments (no overlaps)
+        if (e.shiftKey) {
+          setShiftClickedSegments(prev => {
+            const combined = new Array(canvas.width * canvas.height).fill(false);
+            // Add existing segments
+            for (let i = 0; i < prev.length; i++) {
+              if (prev[i]) combined[i] = true;
+            }
+            // Add new segment (no overlap check - just merge)
+            for (let i = 0; i < selection.length; i++) {
+              if (selection[i]) combined[i] = true;
+            }
+            return combined;
+          });
+          console.log(`Magic Wand: Added segment to shift-click collection`);
+          return;
+        }
+
+        // Normal click: just select
         setCurrentSelection(newSelection);
         setPreviewSelection(null);
+        setShiftClickedSegments([]);
         
         console.log(`Magic Wand: Selected ${selection.filter(Boolean).length} pixels`);
       } catch (error) {
@@ -187,23 +243,44 @@ export const MagicWandTool: React.FC<MagicWandToolProps> = ({
       }
     };
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Create layer from shift-clicked segments when Enter is pressed
+      if (e.key === 'Enter' && shiftClickedSegments.length > 0) {
+        addLayerFromSelection(`Combined Segments ${Date.now()}`, shiftClickedSegments, canvasRef);
+        setShiftClickedSegments([]);
+        console.log('Created layer from combined segments');
+      }
+    };
+
     canvas.addEventListener('mousemove', handleMouseMove);
     canvas.addEventListener('mouseleave', handleMouseLeave);
     canvas.addEventListener('click', handleClick);
+    window.addEventListener('keydown', handleKeyDown);
     
     return () => {
       canvas.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('mouseleave', handleMouseLeave);
       canvas.removeEventListener('click', handleClick);
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [canvasRef, toolSettings.magicWand, showPreview, setCurrentSelection, setPreviewSelection]);
+  }, [canvasRef, toolSettings.magicWand, showPreview, setCurrentSelection, setPreviewSelection, shiftClickedSegments, addLayerFromSelection]);
 
   // Render current selection or preview
   useEffect(() => {
     if (previewSelection) {
-      renderSelection(previewSelection, true);
+      renderSelection(previewSelection, true, true);
+    } else if (currentSelection || shiftClickedSegments.length > 0) {
+      // Re-render when selection or shift segments change
+      const overlay = overlayRef.current;
+      const canvas = canvasRef.current;
+      if (overlay && canvas) {
+        const ctx = overlay.getContext('2d');
+        if (ctx) {
+          renderSelection(currentSelection?.pixels || [], false, false);
+        }
+      }
     }
-  }, [previewSelection, renderSelection]);
+  }, [previewSelection, currentSelection, shiftClickedSegments, renderSelection]);
 
   return null;
 };

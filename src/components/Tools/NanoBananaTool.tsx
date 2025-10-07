@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useImageContext } from '../Context/ImageContext';
 import { useToolContext } from '../Context/ToolContext';
+import { useLayerContext } from '../Context/LayerContext';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -16,10 +17,13 @@ interface NanoBananaToolProps {
 export const NanoBananaTool: React.FC<NanoBananaToolProps> = ({ canvasRef }) => {
   const { currentImage } = useImageContext();
   const { currentSelection } = useToolContext();
+  const { layers, activeLayerId, addLayer } = useLayerContext();
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [featherRadius, setFeatherRadius] = useState(3);
+  const [referenceType, setReferenceType] = useState<'canvas' | 'layer' | 'none'>('canvas');
+  const [selectedLayerRef, setSelectedLayerRef] = useState<string | null>(null);
   const sketchCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
@@ -153,20 +157,43 @@ export const NanoBananaTool: React.FC<NanoBananaToolProps> = ({ canvasRef }) => 
       setIsGenerating(true);
       toast.info('Generating with Nano Banana AI...');
 
-      // Convert base image to WebP
-      const baseImageUrl = await canvasToWebP(canvasRef.current);
+      // Get reference image based on selection
+      let baseImageUrl: string | null = null;
+      
+      if (referenceType === 'canvas') {
+        baseImageUrl = await canvasToWebP(canvasRef.current);
+      } else if (referenceType === 'layer' && selectedLayerRef) {
+        const layer = layers.find(l => l.id === selectedLayerRef);
+        if (layer?.imageUrl) {
+          baseImageUrl = layer.imageUrl;
+        } else if (layer?.data) {
+          // Convert layer data to canvas and then to WebP
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = canvasRef.current.width;
+          tempCanvas.height = canvasRef.current.height;
+          const ctx = tempCanvas.getContext('2d');
+          if (ctx) {
+            ctx.putImageData(layer.data, 0, 0);
+            baseImageUrl = await canvasToWebP(tempCanvas);
+          }
+        }
+      }
 
       // Generate mask from selection (if any)
       const maskImageUrl = await generateMask();
 
       const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-      const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      if (!SUPABASE_URL || !SUPABASE_KEY) {
+        throw new Error('Supabase configuration missing');
+      }
 
       const response = await fetch(`${SUPABASE_URL}/functions/v1/nano-banana-edit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
         },
         body: JSON.stringify({
           baseImage: baseImageUrl,
@@ -185,7 +212,9 @@ export const NanoBananaTool: React.FC<NanoBananaToolProps> = ({ canvasRef }) => 
       
       if (result.success && result.imageUrl) {
         setGeneratedImage(result.imageUrl);
-        toast.success('Image generated successfully!');
+        // Automatically create a new layer with the generated image
+        addLayer(`AI Gen ${Date.now()}`, null, result.imageUrl);
+        toast.success('Image generated and added as new layer!');
       } else {
         throw new Error(result.error || 'No image returned');
       }
@@ -227,122 +256,167 @@ export const NanoBananaTool: React.FC<NanoBananaToolProps> = ({ canvasRef }) => 
   };
 
   return (
-    <Card className="absolute top-4 right-4 w-96 z-20 bg-editor-panel border-border shadow-panel">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-editor-accent" />
-          Nano Banana AI
-          <Badge variant="secondary" className="ml-auto">Phase 1</Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Hidden sketch canvas for mask drawing */}
-        <canvas
-          ref={sketchCanvasRef}
-          className="hidden"
-        />
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-4">
+        <Sparkles className="w-5 h-5 text-editor-accent" />
+        <h3 className="text-lg font-semibold">Nano Banana AI</h3>
+        <Badge variant="secondary" className="ml-auto">Phase 1</Badge>
+      </div>
 
-        {/* Prompt Input */}
-        <div>
-          <label className="text-sm font-medium mb-2 block">
-            Editing Prompt
-          </label>
-          <Textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe what you want to change or add to the image..."
-            className="min-h-[100px] resize-none"
-            disabled={isGenerating}
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            {currentSelection ? 'Editing selected area' : 'Editing entire image'}
-          </p>
-        </div>
-
-        {/* Feathering Control */}
-        {currentSelection && (
+      <Card className="p-4">
+        <div className="space-y-4">
+          {/* Reference Selection */}
           <div>
             <label className="text-sm font-medium mb-2 block">
-              Mask Feathering (Dilation): {featherRadius}px
+              Reference Image
             </label>
-            <Slider
-              value={[featherRadius]}
-              onValueChange={([value]) => setFeatherRadius(value)}
-              min={0}
-              max={20}
-              step={1}
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Button
+                  variant={referenceType === 'canvas' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setReferenceType('canvas')}
+                  className="flex-1"
+                >
+                  Canvas
+                </Button>
+                <Button
+                  variant={referenceType === 'layer' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setReferenceType('layer')}
+                  className="flex-1"
+                >
+                  Layer
+                </Button>
+                <Button
+                  variant={referenceType === 'none' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setReferenceType('none')}
+                  className="flex-1"
+                >
+                  None
+                </Button>
+              </div>
+              {referenceType === 'layer' && (
+                <select
+                  value={selectedLayerRef || ''}
+                  onChange={(e) => setSelectedLayerRef(e.target.value)}
+                  className="w-full p-2 rounded bg-background border border-border"
+                >
+                  <option value="">Select a layer</option>
+                  {layers.map(layer => (
+                    <option key={layer.id} value={layer.id}>
+                      {layer.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+
+          {/* Prompt Input */}
+          <div>
+            <label className="text-sm font-medium mb-2 block">
+              Editing Prompt
+            </label>
+            <Textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Describe what you want to change or add to the image..."
+              className="min-h-[100px] resize-none"
               disabled={isGenerating}
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Smooths mask edges for seamless blending
+              {currentSelection ? 'Editing selected area' : 'Editing entire image'}
             </p>
           </div>
-        )}
 
-        {/* Generate Button */}
-        <Button
-          onClick={handleGenerate}
-          disabled={isGenerating || !prompt.trim()}
-          className="w-full"
-          size="lg"
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4 mr-2" />
-              Generate with AI
-            </>
-          )}
-        </Button>
-
-        {/* Generated Image Preview */}
-        {generatedImage && (
-          <div className="space-y-3 p-3 border border-border rounded-lg bg-background">
-            <div className="relative">
-              <img
-                src={generatedImage}
-                alt="Generated result"
-                className="w-full rounded border border-canvas-border"
+          {/* Feathering Control */}
+          {currentSelection && (
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Mask Feathering (Dilation): {featherRadius}px
+              </label>
+              <Slider
+                value={[featherRadius]}
+                onValueChange={([value]) => setFeatherRadius(value)}
+                min={0}
+                max={20}
+                step={1}
+                disabled={isGenerating}
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Smooths mask edges for seamless blending
+              </p>
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleApplyToCanvas}
-                variant="default"
-                size="sm"
-                className="flex-1"
-              >
-                <Undo2 className="w-4 h-4 mr-1" />
-                Apply
-              </Button>
-              <Button
-                onClick={handleDownload}
-                variant="outline"
-                size="sm"
-                className="flex-1"
-              >
-                <Download className="w-4 h-4 mr-1" />
-                Download
-              </Button>
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Instructions */}
-        <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/30 rounded">
-          <p className="font-medium">How to use:</p>
-          <ul className="list-disc list-inside space-y-1 ml-2">
-            <li>Use Magic Wand/Lasso to select an area (optional)</li>
-            <li>Enter your editing prompt</li>
-            <li>Adjust feathering for smooth edges</li>
-            <li>Click Generate to create with AI</li>
-          </ul>
+          {/* Generate Button */}
+          <Button
+            onClick={handleGenerate}
+            disabled={isGenerating || !prompt.trim()}
+            className="w-full"
+            size="lg"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate with AI
+              </>
+            )}
+          </Button>
+
+          {/* Generated Image Preview */}
+          {generatedImage && (
+            <div className="space-y-3 p-3 border border-border rounded-lg bg-background">
+              <div className="relative">
+                <img
+                  src={generatedImage}
+                  alt="Generated result"
+                  className="w-full rounded border border-canvas-border"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleApplyToCanvas}
+                  variant="default"
+                  size="sm"
+                  className="flex-1"
+                >
+                  <Undo2 className="w-4 h-4 mr-1" />
+                  Apply
+                </Button>
+                <Button
+                  onClick={handleDownload}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Download
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Instructions */}
+          <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/30 rounded">
+            <p className="font-medium">How to use:</p>
+            <ul className="list-disc list-inside space-y-1 ml-2">
+              <li>Choose reference (canvas, layer, or none)</li>
+              <li>Use Magic Wand/Lasso to select an area (optional)</li>
+              <li>Enter your editing prompt</li>
+              <li>Adjust feathering for smooth edges</li>
+              <li>Click Generate - result will be added as a new layer</li>
+            </ul>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </Card>
+    </div>
   );
 };

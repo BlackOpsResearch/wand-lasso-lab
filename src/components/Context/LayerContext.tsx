@@ -7,12 +7,14 @@ export interface Layer {
   opacity: number;
   blendMode: 'normal' | 'multiply' | 'screen' | 'overlay';
   data: ImageData | null;
+  imageUrl?: string;
 }
 
 interface LayerContextType {
   layers: Layer[];
   activeLayerId: string | null;
-  addLayer: (name: string) => void;
+  addLayer: (name: string, data?: ImageData | null, imageUrl?: string) => void;
+  addLayerFromSelection: (name: string, selection: boolean[], canvasRef: React.RefObject<HTMLCanvasElement>) => void;
   removeLayer: (id: string) => void;
   setActiveLayer: (id: string) => void;
   updateLayer: (id: string, updates: Partial<Layer>) => void;
@@ -46,17 +48,42 @@ export const LayerProvider: React.FC<LayerProviderProps> = ({ children }) => {
   ]);
   const [activeLayerId, setActiveLayerId] = useState<string | null>('background');
 
-  const addLayer = (name: string) => {
+  const addLayer = (name: string, data: ImageData | null = null, imageUrl?: string) => {
     const newLayer: Layer = {
       id: Date.now().toString(),
       name,
       visible: true,
       opacity: 100,
       blendMode: 'normal',
-      data: null,
+      data,
+      imageUrl,
     };
     setLayers(prev => [...prev, newLayer]);
     setActiveLayerId(newLayer.id);
+  };
+
+  const addLayerFromSelection = (name: string, selection: boolean[], canvasRef: React.RefObject<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const layerData = ctx.createImageData(canvas.width, canvas.height);
+
+    // Copy only selected pixels to the new layer
+    for (let i = 0; i < selection.length; i++) {
+      if (selection[i]) {
+        const idx = i * 4;
+        layerData.data[idx] = imageData.data[idx];
+        layerData.data[idx + 1] = imageData.data[idx + 1];
+        layerData.data[idx + 2] = imageData.data[idx + 2];
+        layerData.data[idx + 3] = imageData.data[idx + 3];
+      }
+    }
+
+    addLayer(name, layerData);
   };
 
   const removeLayer = (id: string) => {
@@ -94,6 +121,7 @@ export const LayerProvider: React.FC<LayerProviderProps> = ({ children }) => {
         layers,
         activeLayerId,
         addLayer,
+        addLayerFromSelection,
         removeLayer,
         setActiveLayer,
         updateLayer,

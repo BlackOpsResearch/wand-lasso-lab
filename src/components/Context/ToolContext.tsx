@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-export type ToolType = 'select' | 'magicWand' | 'magicLasso' | 'nanoBanana' | 'brush' | 'eraser' | 'layers' | 'eyedropper' | 'zoom' | 'hand';
+export type ToolType = 'select' | 'magicWand' | 'magicLasso' | 'nanoBanana' | 'pen' | 'brush' | 'eraser' | 'layers' | 'eyedropper' | 'zoom' | 'hand';
 
 interface ToolSettings {
   magicWand: {
@@ -30,6 +30,11 @@ interface ToolSettings {
     size: number;
     hardness: number;
     opacity: number;
+  };
+  pen: {
+    thickness: number;
+    color: string;
+    style: 'solid' | 'dashed' | 'dotted';
   };
 }
 
@@ -104,6 +109,11 @@ export const ToolProvider: React.FC<ToolProviderProps> = ({ children }) => {
       size: 5,
       hardness: 100,
       opacity: 100,
+    },
+    pen: {
+      thickness: 2,
+      color: '#000000',
+      style: 'solid',
     },
   });
 

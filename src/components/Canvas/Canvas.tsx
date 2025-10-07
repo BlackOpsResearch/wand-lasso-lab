@@ -1,13 +1,16 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, forwardRef } from 'react';
 import { useImageContext } from '../Context/ImageContext';
 import { useToolContext } from '../Context/ToolContext';
 import { MagicWandTool } from '../Tools/MagicWandTool';
 import { MagicLassoAdvanced } from '../Tools/MagicLassoAdvanced';
-import { NanoBananaTool } from '../Tools/NanoBananaTool';
+import { PenTool } from '../Tools/PenTool';
 import { CanvasRenderer } from './CanvasRenderer';
 
-export const Canvas: React.FC = () => {
+export const Canvas = forwardRef<HTMLCanvasElement>((props, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // Merge refs
+  React.useImperativeHandle(ref, () => canvasRef.current!);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const { currentImage, loadDefaultImage } = useImageContext();
   const { activeTool, currentSelection } = useToolContext();
@@ -50,6 +53,8 @@ export const Canvas: React.FC = () => {
         return 'crosshair';
       case 'magicLasso':
         return 'crosshair';
+      case 'pen':
+        return 'crosshair';
       case 'eyedropper':
         return 'crosshair';
       case 'zoom':
@@ -73,7 +78,6 @@ export const Canvas: React.FC = () => {
   return (
     <div className="canvas-container relative overflow-auto rounded-lg p-4">
       <div className="relative inline-block">
-        {/* Main Canvas */}
         <canvas
           ref={canvasRef}
           className="border border-canvas-border shadow-canvas max-w-full max-h-full block"
@@ -81,7 +85,6 @@ export const Canvas: React.FC = () => {
           onMouseMove={handleMouseMove}
         />
         
-        {/* Tool Overlay Canvas */}
         <canvas
           ref={overlayRef}
           className="absolute top-0 left-0 pointer-events-none"
@@ -91,13 +94,11 @@ export const Canvas: React.FC = () => {
           }}
         />
         
-        {/* Selection Overlay */}
         <CanvasRenderer
           width={currentImage.width}
           height={currentImage.height}
         />
 
-        {/* Tool-specific overlays */}
         {activeTool === 'magicWand' && (
           <MagicWandTool 
             canvasRef={canvasRef}
@@ -110,16 +111,17 @@ export const Canvas: React.FC = () => {
           <MagicLassoAdvanced 
             canvasRef={canvasRef}
             overlayRef={overlayRef}
-            mousePos={mousePos}
           />
         )}
-
-        {activeTool === 'nanoBanana' && (
-          <NanoBananaTool canvasRef={canvasRef} />
+        
+        {activeTool === 'pen' && (
+          <PenTool 
+            canvasRef={canvasRef}
+            overlayRef={overlayRef}
+          />
         )}
       </div>
 
-      {/* Canvas Info */}
       <div className="absolute top-2 right-2 bg-editor-panel text-foreground px-3 py-1 rounded text-sm border border-border">
         <div>{currentImage.width} × {currentImage.height}</div>
         <div>Mouse: {mousePos.x}, {mousePos.y}</div>
@@ -131,4 +133,6 @@ export const Canvas: React.FC = () => {
       </div>
     </div>
   );
-};
+});
+
+Canvas.displayName = 'Canvas';
