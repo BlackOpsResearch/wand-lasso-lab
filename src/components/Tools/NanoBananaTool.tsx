@@ -235,6 +235,11 @@ export const NanoBananaTool: React.FC<NanoBananaToolProps> = ({ canvasRef }) => 
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
+      // Resize canvas to match generated image dimensions
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      // Draw the generated image
       ctx.drawImage(img, 0, 0);
       toast.success('Applied to canvas');
       setGeneratedImage(null);
