@@ -13,9 +13,9 @@ serve(async (req) => {
   try {
     const { baseImage, maskImage, prompt, mode = 'edit' } = await req.json();
     
-    if (!baseImage || !prompt) {
+    if (!prompt) {
       return new Response(
-        JSON.stringify({ error: 'baseImage and prompt are required' }),
+        JSON.stringify({ error: 'Prompt is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -32,7 +32,7 @@ serve(async (req) => {
     console.log(`Nano Banana ${mode} request:`, {
       promptLength: prompt.length,
       hasMask: !!maskImage,
-      baseImageType: baseImage.substring(0, 30)
+      hasBaseImage: !!baseImage
     });
 
     // Prepare content array for multimodal input
@@ -40,11 +40,13 @@ serve(async (req) => {
       { type: "text", text: prompt }
     ];
 
-    // Add base image
-    content.push({
-      type: "image_url",
-      image_url: { url: baseImage }
-    });
+    // Add base image if provided (for editing)
+    if (baseImage) {
+      content.push({
+        type: "image_url",
+        image_url: { url: baseImage }
+      });
+    }
 
     // Add mask image if provided (for targeted editing)
     if (maskImage) {
