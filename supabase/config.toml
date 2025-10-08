@@ -1,5 +1,1 @@
-[project]
-# Configuration for Lovable Cloud backend
-
-[functions.nano-banana-edit]
-verify_jwt = false
+project_id = "qcodijcjyvsgringxoec"
