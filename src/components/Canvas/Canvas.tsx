@@ -111,6 +111,7 @@ export const Canvas = forwardRef<HTMLCanvasElement>((props, ref) => {
           <MagicLassoAdvanced 
             canvasRef={canvasRef}
             overlayRef={overlayRef}
+            mousePos={mousePos}
           />
         )}
         
