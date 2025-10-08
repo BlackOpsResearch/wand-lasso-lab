@@ -9,6 +9,7 @@ import { Badge } from '../ui/badge';
 import { Slider } from '../ui/slider';
 import { toast } from 'sonner';
 import { Sparkles, Loader2, Download, Undo2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NanoBananaToolProps {
   canvasRef: React.RefObject<HTMLCanvasElement>;
@@ -182,41 +183,27 @@ export const NanoBananaTool: React.FC<NanoBananaToolProps> = ({ canvasRef }) => 
       // Generate mask from selection (if any)
       const maskImageUrl = await generateMask();
 
-      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-      const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-      if (!SUPABASE_URL || !SUPABASE_KEY) {
-        throw new Error('Supabase configuration missing');
-      }
-
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/nano-banana-edit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-        },
-        body: JSON.stringify({
+      // Use Supabase client to invoke the edge function
+      const { data, error } = await supabase.functions.invoke('nano-banana-edit', {
+        body: {
           baseImage: baseImageUrl,
           maskImage: maskImageUrl,
           prompt: prompt,
           mode: maskImageUrl ? 'targeted-edit' : 'full-edit'
-        }),
+        },
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Generation failed');
+      if (error) {
+        throw new Error(error.message || 'Generation failed');
       }
-
-      const result = await response.json();
       
-      if (result.success && result.imageUrl) {
-        setGeneratedImage(result.imageUrl);
+      if (data?.success && data?.imageUrl) {
+        setGeneratedImage(data.imageUrl);
         // Automatically create a new layer with the generated image
-        addLayer(`AI Gen ${Date.now()}`, null, result.imageUrl);
+        addLayer(`AI Gen ${Date.now()}`, null, data.imageUrl);
         toast.success('Image generated and added as new layer!');
       } else {
-        throw new Error(result.error || 'No image returned');
+        throw new Error(data?.error || 'No image returned');
       }
 
     } catch (error) {
