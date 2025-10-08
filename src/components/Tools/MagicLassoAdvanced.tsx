@@ -369,7 +369,7 @@ export const MagicLassoAdvanced: React.FC<MagicLassoAdvancedProps> = ({
     });
     
     // Draw hover circle
-    if (isDrawing) {
+    if (isDrawing && mousePos) {
       ctx.strokeStyle = 'rgba(100, 255, 255, 0.5)';
       ctx.lineWidth = 1;
       ctx.setLineDash([2, 2]);
