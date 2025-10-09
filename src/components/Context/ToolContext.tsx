@@ -1,6 +1,10 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-export type ToolType = 'select' | 'magicWand' | 'magicLasso' | 'nanoBanana' | 'pen' | 'brush' | 'eraser' | 'layers' | 'eyedropper' | 'zoom' | 'hand';
+export type ToolType = 
+  | 'select' | 'magicWand' | 'magicLasso' | 'crop' | 'pen' | 'brush' 
+  | 'eraser' | 'clone' | 'dodge' | 'burn' | 'blur' | 'sharpen' 
+  | 'gradient' | 'shapes' | 'text' | 'nanoBanana' | 'measure' 
+  | 'magnifier' | 'layers' | 'eyedropper' | 'zoom' | 'hand';
 
 interface ToolSettings {
   magicWand: {

@@ -1,99 +1,50 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Canvas } from './Canvas/Canvas';
-import { LeftToolbar } from './Toolbars/LeftToolbar';
-import { RightPanel } from './Panels/RightPanel';
-import { RightDrawer } from './Drawers/RightDrawer';
-import { TopNavigation } from './Navigation/TopNavigation';
-import { BottomDrawer } from './Drawers/BottomDrawer';
-import { SpecialDisplayPanel } from './Panels/SpecialDisplayPanel';
+import { CDELeftToolbar } from './Toolbars/CDELeftToolbar';
+import { CDETopBar } from './Navigation/CDETopBar';
+import { RightPanelBar } from './Panels/RightPanelBar';
+import { BottomBar } from './Bars/BottomBar';
+import { AIToolsPanel } from './Panels/AIToolsPanel';
+import { SpecialLayersBar } from './Panels/SpecialLayersBar';
 import { ToolProvider } from './Context/ToolContext';
 import { ImageProvider } from './Context/ImageContext';
 import { LayerProvider } from './Context/LayerContext';
 
 export const ImageEditor: React.FC = () => {
-  const [activeView, setActiveView] = useState<'main' | 'compare'>('main');
-  const [rightPanelOpen, setRightPanelOpen] = useState(true);
-  const [rightDrawerOpen, setRightDrawerOpen] = useState(true);
-  const [bottomDrawerOpen, setBottomDrawerOpen] = useState(true);
-  const [specialPanelOpen, setSpecialPanelOpen] = useState(false);
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [showLayersBar, setShowLayersBar] = useState(true);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
   return (
     <ImageProvider>
       <LayerProvider>
         <ToolProvider>
-          <div className="min-h-screen bg-editor-bg text-foreground flex flex-col">
-            {/* Top Navigation */}
-            <TopNavigation 
-              activeView={activeView}
-              onViewChange={setActiveView}
-              onToggleSpecialPanel={() => setSpecialPanelOpen(!specialPanelOpen)}
-            />
+          <div className="min-h-screen bg-editor-bg text-foreground flex flex-col w-full">
+            {/* CDE Top Bar */}
+            <CDETopBar />
 
             {/* Main Editor Layout */}
             <div className="flex-1 flex overflow-hidden">
-              {/* Left Toolbar */}
-              <LeftToolbar />
+              {/* CDE Left Toolbar */}
+              <CDELeftToolbar />
 
               {/* Central Canvas Area */}
-              <div className="flex-1 flex flex-col relative">
-                <div className="flex-1 flex">
-                  <div className="flex-1 p-4">
-                    <Canvas ref={canvasRef} />
-                  </div>
-                  
-                  {/* Right Panel (Quick Actions) */}
-                  {rightPanelOpen && (
-                    <div className="w-80 animate-panel-slide">
-                      <RightPanel />
-                    </div>
-                  )}
-                  
-                  {/* Right Drawer (Settings/Layers/AI) */}
-                  {rightDrawerOpen && (
-                    <div className="animate-panel-slide">
-                      <RightDrawer canvasRef={canvasRef} onClose={() => setRightDrawerOpen(false)} />
-                    </div>
-                  )}
-                </div>
-
-                {/* Special Display Panel */}
-                {specialPanelOpen && (
-                  <div className="h-80 border-t border-border animate-panel-slide">
-                    <SpecialDisplayPanel onClose={() => setSpecialPanelOpen(false)} />
-                  </div>
-                )}
+              <div className="flex-1 flex">
+                <Canvas ref={canvasRef} />
               </div>
+
+              {/* Special Layers Bar */}
+              {showLayersBar && <SpecialLayersBar />}
+
+              {/* AI Tools Panel */}
+              {showAIPanel && <AIToolsPanel />}
+
+              {/* Right Panel Bar */}
+              <RightPanelBar />
             </div>
 
-            {/* Bottom Drawer */}
-            {bottomDrawerOpen && (
-              <div className="h-60 border-t border-border animate-panel-slide">
-                <BottomDrawer onClose={() => setBottomDrawerOpen(false)} />
-              </div>
-            )}
-
-            {/* Floating Toggle for Right Drawer */}
-            {!rightDrawerOpen && (
-              <button
-                onClick={() => setRightDrawerOpen(true)}
-                className="fixed right-4 top-1/2 transform -translate-y-1/2 z-50 bg-primary text-primary-foreground p-2 rounded-l-lg shadow-tool hover:bg-primary/90 transition-[var(--transition-smooth)]"
-                title="Open Editor Panel"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-            )}
-
-            {/* Floating Toggle for Bottom Drawer */}
-            <button
-              onClick={() => setBottomDrawerOpen(!bottomDrawerOpen)}
-              className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-tool hover:bg-primary/90 transition-[var(--transition-smooth)]"
-              title="Toggle Assets"
-            >
-              {bottomDrawerOpen ? 'Hide Assets' : 'Show Assets'}
-            </button>
+            {/* Bottom Bar */}
+            <BottomBar />
           </div>
         </ToolProvider>
       </LayerProvider>
