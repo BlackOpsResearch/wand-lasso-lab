@@ -4,20 +4,20 @@ import { CDELeftToolbar } from './Toolbars/CDELeftToolbar';
 import { CDETopBar } from './Navigation/CDETopBar';
 import { RightPanelBar } from './Panels/RightPanelBar';
 import { BottomBar } from './Bars/BottomBar';
-import { AIToolsPanel } from './Panels/AIToolsPanel';
 import { LayersPanel } from './Panels/LayersPanel';
+import { InspectorPanel } from './Panels/InspectorPanel';
+import { EffectsPanel } from './Panels/EffectsPanel';
 import { AdvancedAIGeneratePanel } from './Panels/AdvancedAIGeneratePanel';
 import { AIChatPanel } from './Panels/AIChatPanel';
 import { SpecialLayersBar } from './Panels/SpecialLayersBar';
-import { ToolSettingsPanel } from './Panels/ToolSettingsPanel';
+import { ToolSettingsPanelCompact } from './Panels/ToolSettingsPanelCompact';
 import { ToolProvider } from './Context/ToolContext';
 import { ImageProvider } from './Context/ImageContext';
 import { LayerProvider } from './Context/LayerContext';
 
 export const ImageEditor: React.FC = () => {
-  const [showAIPanel, setShowAIPanel] = useState(false);
-  const [showLayersBar, setShowLayersBar] = useState(true);
-  const [activePanel, setActivePanel] = useState<'layers' | 'inspector' | 'effects' | 'ai-generate' | 'ai-chat' | null>(null);
+  const [settingsCollapsed, setSettingsCollapsed] = useState(false);
+  const [activePanel, setActivePanel] = useState<'layers' | 'inspector' | 'effects' | null>(null);
   const [panelSize, setPanelSize] = useState<'full' | 'top' | 'bottom'>('full');
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
@@ -32,10 +32,15 @@ export const ImageEditor: React.FC = () => {
             {/* Main Editor Layout */}
             <div className="flex-1 flex overflow-hidden">
               {/* Tool Settings Panel */}
-              <ToolSettingsPanel />
+              <ToolSettingsPanelCompact 
+                collapsed={settingsCollapsed}
+              />
               
               {/* CDE Left Toolbar */}
-              <CDELeftToolbar />
+              <CDELeftToolbar 
+                onToggleSettings={setSettingsCollapsed}
+                settingsCollapsed={settingsCollapsed}
+              />
 
               {/* Central Canvas Area */}
               <div className="flex-1 flex">
@@ -43,17 +48,17 @@ export const ImageEditor: React.FC = () => {
               </div>
 
               {/* Special Layers Bar */}
-              {showLayersBar && <SpecialLayersBar />}
+              <SpecialLayersBar />
 
               {/* Dynamic Right Panels */}
               {activePanel === 'layers' && <LayersPanel />}
-              {activePanel === 'ai-generate' && <AdvancedAIGeneratePanel />}
-              {activePanel === 'ai-chat' && <AIChatPanel />}
+              {activePanel === 'inspector' && <InspectorPanel />}
+              {activePanel === 'effects' && <EffectsPanel />}
 
               {/* Right Panel Bar */}
               <RightPanelBar 
                 onPanelChange={(panel, size) => {
-                  setActivePanel(panel as any);
+                  setActivePanel(panel);
                   setPanelSize(size);
                 }} 
               />

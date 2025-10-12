@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Eye, EyeOff, Lock, Unlock, Trash2, Settings, Plus } from 'lucide-react';
+import { Eye, EyeOff, Lock, Unlock, Trash2, Settings, Plus, Upload } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLayerContext } from '@/components/Context/LayerContext';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface Modifier {
   id: string;
@@ -15,10 +16,11 @@ interface Modifier {
 }
 
 export const LayersPanel: React.FC = () => {
-  const { layers, activeLayerId, setActiveLayer, updateLayer, removeLayer, reorderLayers } = useLayerContext();
+  const { layers, activeLayerId, setActiveLayer, updateLayer, removeLayer, reorderLayers, addLayer } = useLayerContext();
   const [draggedLayer, setDraggedLayer] = useState<string | null>(null);
   const [layerModifiers, setLayerModifiers] = useState<Record<string, Modifier[]>>({});
   const [expandedModifiers, setExpandedModifiers] = useState<Record<string, boolean>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragStart = (layerId: string) => {
     setDraggedLayer(layerId);
@@ -71,14 +73,78 @@ export const LayersPanel: React.FC = () => {
     }));
   };
 
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const imageData = ctx.getImageData(0, 0, img.width, img.height);
+          addLayer(`Uploaded: ${file.name}`, imageData);
+          toast.success('Image uploaded to new layer');
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="w-80 bg-editor-panel border-l border-border flex flex-col h-full">
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleUpload}
+        className="hidden"
+      />
+
       {/* Header */}
       <div className="p-4 border-b border-border flex items-center justify-between">
         <h3 className="text-sm font-semibold">Layers</h3>
-        <Button variant="ghost" size="icon" className="w-6 h-6">
-          <Plus className="w-4 h-4" />
-        </Button>
+        <div className="flex gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="w-6 h-6"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Upload Image</TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="w-6 h-6"
+                onClick={() => addLayer('New Layer')}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>New Layer</TooltipContent>
+          </Tooltip>
+        </div>
       </div>
 
       {/* Layers List */}

@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { 
   MousePointer, Sparkles, Lasso, Crop, Pen, Brush, Eraser,
   Stamp, Sun, Moon, Droplets, Focus, Palette, Shapes, Type,
-  Ruler, ZoomIn, Layers, Pipette
+  Ruler, ZoomIn, Layers, Pipette, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 const tools = [
@@ -29,7 +29,15 @@ const tools = [
   { id: 'magnifier' as ToolType, icon: ZoomIn, label: 'Magnifier', shortcut: 'Z' },
 ];
 
-export const CDELeftToolbar: React.FC = () => {
+interface CDELeftToolbarProps {
+  onToggleSettings?: (collapsed: boolean) => void;
+  settingsCollapsed?: boolean;
+}
+
+export const CDELeftToolbar: React.FC<CDELeftToolbarProps> = ({ 
+  onToggleSettings,
+  settingsCollapsed = false
+}) => {
   const { activeTool, setActiveTool } = useToolContext();
 
   const getToolButtonVariant = (toolId: ToolType) => {
@@ -42,7 +50,7 @@ export const CDELeftToolbar: React.FC = () => {
   };
 
   return (
-    <div className="w-16 bg-editor-toolbar border-r border-border flex flex-col items-center py-4 gap-1">
+    <div className="w-16 bg-editor-toolbar border-r border-border flex flex-col items-center py-2 gap-1">
       {tools.map((tool) => {
         const Icon = tool.icon;
         return (
@@ -69,6 +77,29 @@ export const CDELeftToolbar: React.FC = () => {
           </Tooltip>
         );
       })}
+
+      {/* Settings Toggle Button */}
+      <div className="mt-auto pt-2 border-t border-border">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-12 h-12"
+              onClick={() => onToggleSettings?.(!settingsCollapsed)}
+            >
+              {settingsCollapsed ? (
+                <ChevronRight className="w-5 h-5" />
+              ) : (
+                <ChevronLeft className="w-5 h-5" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            {settingsCollapsed ? 'Show' : 'Hide'} Tool Settings
+          </TooltipContent>
+        </Tooltip>
+      </div>
     </div>
   );
 };
