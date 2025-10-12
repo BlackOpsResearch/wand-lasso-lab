@@ -5,7 +5,11 @@ import { CDETopBar } from './Navigation/CDETopBar';
 import { RightPanelBar } from './Panels/RightPanelBar';
 import { BottomBar } from './Bars/BottomBar';
 import { AIToolsPanel } from './Panels/AIToolsPanel';
+import { LayersPanel } from './Panels/LayersPanel';
+import { AdvancedAIGeneratePanel } from './Panels/AdvancedAIGeneratePanel';
+import { AIChatPanel } from './Panels/AIChatPanel';
 import { SpecialLayersBar } from './Panels/SpecialLayersBar';
+import { ToolSettingsPanel } from './Panels/ToolSettingsPanel';
 import { ToolProvider } from './Context/ToolContext';
 import { ImageProvider } from './Context/ImageContext';
 import { LayerProvider } from './Context/LayerContext';
@@ -13,6 +17,8 @@ import { LayerProvider } from './Context/LayerContext';
 export const ImageEditor: React.FC = () => {
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [showLayersBar, setShowLayersBar] = useState(true);
+  const [activePanel, setActivePanel] = useState<'layers' | 'inspector' | 'effects' | 'ai-generate' | 'ai-chat' | null>(null);
+  const [panelSize, setPanelSize] = useState<'full' | 'top' | 'bottom'>('full');
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
   return (
@@ -25,6 +31,9 @@ export const ImageEditor: React.FC = () => {
 
             {/* Main Editor Layout */}
             <div className="flex-1 flex overflow-hidden">
+              {/* Tool Settings Panel */}
+              <ToolSettingsPanel />
+              
               {/* CDE Left Toolbar */}
               <CDELeftToolbar />
 
@@ -36,11 +45,18 @@ export const ImageEditor: React.FC = () => {
               {/* Special Layers Bar */}
               {showLayersBar && <SpecialLayersBar />}
 
-              {/* AI Tools Panel */}
-              {showAIPanel && <AIToolsPanel />}
+              {/* Dynamic Right Panels */}
+              {activePanel === 'layers' && <LayersPanel />}
+              {activePanel === 'ai-generate' && <AdvancedAIGeneratePanel />}
+              {activePanel === 'ai-chat' && <AIChatPanel />}
 
               {/* Right Panel Bar */}
-              <RightPanelBar />
+              <RightPanelBar 
+                onPanelChange={(panel, size) => {
+                  setActivePanel(panel as any);
+                  setPanelSize(size);
+                }} 
+              />
             </div>
 
             {/* Bottom Bar */}

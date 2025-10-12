@@ -44,42 +44,44 @@ export const RightPanelBar: React.FC<RightPanelBarProps> = ({ onPanelChange }) =
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
-                  className="relative"
+                  className="relative w-10 h-10"
                   onMouseEnter={() => setHoveredButton(panel.id)}
                   onMouseLeave={() => setHoveredButton(null)}
                 >
+                  {/* Hover overlay with 3-rectangle split */}
+                  {isHovered && (
+                    <div className="absolute inset-0 z-10 flex">
+                      {/* Left half - Full panel */}
+                      <button
+                        className="w-1/2 h-full bg-primary/10 hover:bg-primary/20 border-r border-border/50 transition-colors"
+                        onClick={() => handlePanelToggle(panel.id, 'full')}
+                        title="Full Panel"
+                      />
+                      {/* Right half split */}
+                      <div className="w-1/2 h-full flex flex-col">
+                        <button
+                          className="flex-1 bg-accent/10 hover:bg-accent/20 border-b border-border/50 transition-colors"
+                          onClick={() => handlePanelToggle(panel.id, 'top')}
+                          title="Top Half"
+                        />
+                        <button
+                          className="flex-1 bg-accent/10 hover:bg-accent/20 transition-colors"
+                          onClick={() => handlePanelToggle(panel.id, 'bottom')}
+                          title="Bottom Half"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Main icon button */}
                   <Button
                     variant={isActive ? 'default' : 'ghost'}
                     size="icon"
-                    className="w-10 h-10"
+                    className="w-full h-full relative"
                     onClick={() => handlePanelToggle(panel.id, 'full')}
                   >
                     <Icon className="w-5 h-5" />
                   </Button>
-
-                  {/* Split buttons on hover */}
-                  {isHovered && (
-                    <div className="absolute right-full mr-1 top-0 flex flex-col gap-1 bg-popover border border-border rounded-lg p-1 shadow-panel">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="w-8 h-4 text-xs"
-                        onClick={() => handlePanelToggle(panel.id, 'top')}
-                        title="Half (Top)"
-                      >
-                        ↑
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="w-8 h-4 text-xs"
-                        onClick={() => handlePanelToggle(panel.id, 'bottom')}
-                        title="Half (Bottom)"
-                      >
-                        ↓
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </TooltipTrigger>
               <TooltipContent side="left">{panel.label}</TooltipContent>
