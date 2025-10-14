@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Layers, Settings, Wand2, X } from 'lucide-react';
+import { Layers, Settings, Wand2, X, Sparkles, MessageSquare, ZoomIn, FolderOpen } from 'lucide-react';
 
-type PanelType = 'layers' | 'inspector' | 'effects' | null;
+type PanelType = 'layers' | 'inspector' | 'effects' | 'ai-generate' | 'ai-chat' | 'magnifier' | 'assets' | null;
 type PanelSize = 'full' | 'top' | 'bottom';
 
 interface RightPanelBarProps {
@@ -30,6 +30,10 @@ export const RightPanelBar: React.FC<RightPanelBarProps> = ({ onPanelChange }) =
     { id: 'layers' as PanelType, icon: Layers, label: 'Layers' },
     { id: 'inspector' as PanelType, icon: Settings, label: 'Inspector' },
     { id: 'effects' as PanelType, icon: Wand2, label: 'Effects' },
+    { id: 'ai-generate' as PanelType, icon: Sparkles, label: 'AI Generate' },
+    { id: 'ai-chat' as PanelType, icon: MessageSquare, label: 'AI Chat' },
+    { id: 'magnifier' as PanelType, icon: ZoomIn, label: 'Magnifier' },
+    { id: 'assets' as PanelType, icon: FolderOpen, label: 'Assets' },
   ];
 
   return (

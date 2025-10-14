@@ -9,6 +9,8 @@ import { InspectorPanel } from './Panels/InspectorPanel';
 import { EffectsPanel } from './Panels/EffectsPanel';
 import { AdvancedAIGeneratePanel } from './Panels/AdvancedAIGeneratePanel';
 import { AIChatPanel } from './Panels/AIChatPanel';
+import { MagnifierPanel } from './Panels/MagnifierPanel';
+import { AssetsPanel } from './Panels/AssetsPanel';
 import { SpecialLayersBar } from './Panels/SpecialLayersBar';
 import { ToolSettingsPanelCompact } from './Panels/ToolSettingsPanelCompact';
 import { ToolProvider } from './Context/ToolContext';
@@ -17,7 +19,7 @@ import { LayerProvider } from './Context/LayerContext';
 
 export const ImageEditor: React.FC = () => {
   const [settingsCollapsed, setSettingsCollapsed] = useState(false);
-  const [activePanel, setActivePanel] = useState<'layers' | 'inspector' | 'effects' | null>(null);
+  const [activePanel, setActivePanel] = useState<'layers' | 'inspector' | 'effects' | 'ai-generate' | 'ai-chat' | 'magnifier' | 'assets' | null>(null);
   const [panelSize, setPanelSize] = useState<'full' | 'top' | 'bottom'>('full');
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
@@ -54,6 +56,10 @@ export const ImageEditor: React.FC = () => {
               {activePanel === 'layers' && <LayersPanel />}
               {activePanel === 'inspector' && <InspectorPanel />}
               {activePanel === 'effects' && <EffectsPanel />}
+              {activePanel === 'ai-generate' && <AdvancedAIGeneratePanel />}
+              {activePanel === 'ai-chat' && <AIChatPanel />}
+              {activePanel === 'magnifier' && <MagnifierPanel />}
+              {activePanel === 'assets' && <AssetsPanel />}
 
               {/* Right Panel Bar */}
               <RightPanelBar 
