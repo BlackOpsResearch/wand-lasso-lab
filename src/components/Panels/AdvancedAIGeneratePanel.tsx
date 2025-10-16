@@ -5,10 +5,11 @@ import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sparkles, Plus, X, Image as ImageIcon, Upload, Layers, Paintbrush, Link2, ChevronDown, ChevronUp, Activity } from 'lucide-react';
+import { Sparkles, Plus, X, Image as ImageIcon, Upload, Layers, Paintbrush, Link2, ChevronDown, ChevronUp, Activity, Palette, Pencil, Brush, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLayerContext } from '@/components/Context/LayerContext';
 import { toast } from 'sonner';
 
@@ -24,28 +25,29 @@ interface Reference {
   expanded?: boolean;
 }
 
-const MAX_REFERENCES = 8; // Nano Banana limit
+const MAX_REFERENCES = 8;
 const SKETCH_COLORS = ['RED', 'BLUE', 'GREEN', 'YELLOW', 'PURPLE', 'ORANGE'];
 
 export const AdvancedAIGeneratePanel: React.FC = () => {
   const { layers } = useLayerContext();
   const [basePrompt, setBasePrompt] = useState('');
   const [references, setReferences] = useState<Reference[]>([]);
-  const [realism, setRealism] = useState([50]);
+  const [styleType, setStyleType] = useState('photo');
   const [quality, setQuality] = useState('high');
   const [cameraQuality, setCameraQuality] = useState('dslr');
+  const [generationQuality, setGenerationQuality] = useState('balanced');
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [enforceAspect, setEnforceAspect] = useState(true);
-  const [cameraLens, setCameraLens] = useState('50mm');
-  const [aperture, setAperture] = useState('f/1.8');
-  const [shutter, setShutter] = useState('1/125s');
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [showFinalPrompt, setShowFinalPrompt] = useState(false);
+  const [cameraSettings, setCameraSettings] = useState({
+    lens: '50mm',
+    aperture: 'f/1.8',
+    shutter: '1/125s'
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addReference = (type: Reference['type']) => {
     if (references.length >= MAX_REFERENCES) {
-      toast.error(`Maximum ${MAX_REFERENCES} references allowed (Nano Banana limit)`);
+      toast.error(`Maximum ${MAX_REFERENCES} references allowed`);
       return;
     }
     
@@ -127,9 +129,9 @@ export const AdvancedAIGeneratePanel: React.FC = () => {
       
       if (ref.linkedTo) {
         const linkedRef = references.find(r => r.id === ref.linkedTo);
-        if (linkedRef) {
-          finalPrompt += `  - Linked to: ${linkedRef.name}\n`;
-          finalPrompt += `  - Action: Apply this reference content to the linked sketch structure\n`;
+        if (linkedRef && linkedRef.sketchColor) {
+          finalPrompt += `  - Linked to: ${linkedRef.name} [${linkedRef.sketchColor}]\n`;
+          finalPrompt += `  - Action: Apply this reference to the ${linkedRef.sketchColor} sketch structure\n`;
         }
       }
       
@@ -141,11 +143,11 @@ export const AdvancedAIGeneratePanel: React.FC = () => {
     });
 
     finalPrompt += `TECHNICAL SETTINGS:\n`;
-    finalPrompt += `  - Aspect Ratio: ${aspectRatio}${enforceAspect ? ' (enforced on all refs)' : ''}\n`;
-    finalPrompt += `  - Camera: ${cameraLens}, ${aperture}, ${shutter}\n`;
-    finalPrompt += `  - Camera Quality: ${cameraQuality.toUpperCase()}\n`;
-    finalPrompt += `  - Quality: ${quality}\n`;
-    finalPrompt += `  - Style Realism: ${realism[0]}%\n`;
+    finalPrompt += `  - Style: ${styleType}\n`;
+    finalPrompt += `  - Aspect Ratio: ${aspectRatio}${enforceAspect ? ' (enforced)' : ''}\n`;
+    finalPrompt += `  - Camera: ${cameraSettings.lens}, ${cameraSettings.aperture}, ${cameraSettings.shutter}\n`;
+    finalPrompt += `  - Camera Quality: ${cameraQuality}\n`;
+    finalPrompt += `  - Generation Quality: ${generationQuality}\n`;
 
     return finalPrompt;
   };
@@ -233,55 +235,12 @@ export const AdvancedAIGeneratePanel: React.FC = () => {
               Sketch
             </Button>
           </div>
-
-          <div className="grid grid-cols-4 gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs h-7"
-              onClick={() => addReference('layer')}
-              disabled={references.length >= MAX_REFERENCES}
-              title="Add Layer"
-            >
-              <Layers className="w-3 h-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs h-7"
-              onClick={() => addReference('canvas')}
-              disabled={references.length >= MAX_REFERENCES}
-              title="Add Canvas"
-            >
-              <ImageIcon className="w-3 h-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs h-7"
-              onClick={() => addReference('asset')}
-              disabled={references.length >= MAX_REFERENCES}
-              title="Add Asset"
-            >
-              <Sparkles className="w-3 h-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs h-7"
-              onClick={() => addReference('upload')}
-              disabled={references.length >= MAX_REFERENCES}
-              title="Upload Image"
-            >
-              <Upload className="w-3 h-3" />
-            </Button>
-          </div>
         </div>
 
         {/* Reference Stack */}
         {references.length > 0 && (
           <div className="space-y-2">
-            {references.map((ref, index) => (
+            {references.map((ref) => (
               <Collapsible
                 key={ref.id}
                 open={ref.expanded}
@@ -296,12 +255,11 @@ export const AdvancedAIGeneratePanel: React.FC = () => {
                       </Button>
                     </CollapsibleTrigger>
 
-                    <div className="w-6 h-6 bg-muted rounded border border-border flex items-center justify-center flex-shrink-0">
-                      {ref.type === 'sketch' && <Paintbrush className="w-3 h-3" />}
-                      {ref.type === 'layer' && <Layers className="w-3 h-3" />}
-                      {ref.type === 'canvas' && <ImageIcon className="w-3 h-3" />}
-                      {ref.type === 'upload' && <Upload className="w-3 h-3" />}
-                    </div>
+                    {ref.type === 'sketch' && ref.sketchColor && (
+                      <div className="px-1.5 py-0.5 bg-primary/20 text-primary rounded text-[9px] font-bold">
+                        {ref.sketchColor}
+                      </div>
+                    )}
 
                     <Input
                       value={ref.name}
@@ -344,28 +302,6 @@ export const AdvancedAIGeneratePanel: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Layer/Asset Selection */}
-                      {(ref.type === 'layer' || ref.type === 'asset') && (
-                        <div className="space-y-1">
-                          <Label className="text-xs">Source {ref.type === 'layer' ? 'Layer' : 'Asset'}</Label>
-                          <Select
-                            value={ref.imageUrl}
-                            onValueChange={(value) => updateReference(ref.id, { imageUrl: value })}
-                          >
-                            <SelectTrigger className="h-7 text-xs">
-                              <SelectValue placeholder={`Select ${ref.type}`} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {layers.map(layer => (
-                                <SelectItem key={layer.id} value={layer.id} className="text-xs">
-                                  {layer.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-
                       {/* Link to Sketch */}
                       {ref.type !== 'sketch' && sketchRefs.length > 0 && (
                         <div className="space-y-1">
@@ -384,7 +320,7 @@ export const AdvancedAIGeneratePanel: React.FC = () => {
                               <SelectItem value="" className="text-xs">No link</SelectItem>
                               {sketchRefs.map(sketch => (
                                 <SelectItem key={sketch.id} value={sketch.id} className="text-xs">
-                                  {sketch.name}
+                                  {sketch.name} {sketch.sketchColor && `[${sketch.sketchColor}]`}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -405,7 +341,7 @@ export const AdvancedAIGeneratePanel: React.FC = () => {
 
                       {/* Negative Prompt */}
                       <div className="space-y-1">
-                        <Label className="text-xs">Negative Prompt (Optional)</Label>
+                        <Label className="text-xs">Negative Prompt</Label>
                         <Input
                           value={ref.negative || ''}
                           onChange={(e) => updateReference(ref.id, { negative: e.target.value })}
@@ -423,191 +359,228 @@ export const AdvancedAIGeneratePanel: React.FC = () => {
 
         <Separator />
 
-        {/* Advanced Settings */}
-        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-          <CollapsibleTrigger asChild>
-            <Button variant="outline" size="sm" className="w-full text-xs">
-              {advancedOpen ? <ChevronUp className="w-3 h-3 mr-1" /> : <ChevronDown className="w-3 h-3 mr-1" />}
-              Advanced Settings
-            </Button>
-          </CollapsibleTrigger>
-          
-          <CollapsibleContent className="space-y-3 mt-3">
-            {/* Smart Aspect Ratio */}
-            <div className="space-y-2">
-              <Label className="text-xs">Smart Aspect Ratio System</Label>
-              <div className="flex gap-2">
-                <Select value={aspectRatio} onValueChange={setAspectRatio}>
-                  <SelectTrigger className="text-xs flex-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1:1" className="text-xs">1:1 Square</SelectItem>
-                    <SelectItem value="4:3" className="text-xs">4:3 Standard</SelectItem>
-                    <SelectItem value="16:9" className="text-xs">16:9 Widescreen</SelectItem>
-                    <SelectItem value="21:9" className="text-xs">21:9 Ultrawide</SelectItem>
-                    <SelectItem value="9:16" className="text-xs">9:16 Portrait</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant={enforceAspect ? "default" : "outline"}
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => setEnforceAspect(!enforceAspect)}
-                >
-                  Enforce
-                </Button>
-              </div>
-            </div>
-
-            {/* Camera Settings */}
+        {/* Advanced Settings - Always Open */}
+        <div className="space-y-3">
+          {/* Camera Settings */}
+          <div className="space-y-2">
+            <Label className="text-xs">Camera Settings</Label>
             <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Lens</Label>
-                <Select value={cameraLens} onValueChange={setCameraLens}>
-                  <SelectTrigger className="text-xs h-7">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="24mm">24mm</SelectItem>
-                    <SelectItem value="35mm">35mm</SelectItem>
-                    <SelectItem value="50mm">50mm</SelectItem>
-                    <SelectItem value="85mm">85mm</SelectItem>
-                    <SelectItem value="135mm">135mm</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Aperture</Label>
-                <Select value={aperture} onValueChange={setAperture}>
-                  <SelectTrigger className="text-xs h-7">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="f/1.4">f/1.4</SelectItem>
-                    <SelectItem value="f/1.8">f/1.8</SelectItem>
-                    <SelectItem value="f/2.8">f/2.8</SelectItem>
-                    <SelectItem value="f/5.6">f/5.6</SelectItem>
-                    <SelectItem value="f/8">f/8</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Shutter</Label>
-                <Select value={shutter} onValueChange={setShutter}>
-                  <SelectTrigger className="text-xs h-7">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1/30s">1/30s</SelectItem>
-                    <SelectItem value="1/60s">1/60s</SelectItem>
-                    <SelectItem value="1/125s">1/125s</SelectItem>
-                    <SelectItem value="1/250s">1/250s</SelectItem>
-                    <SelectItem value="1/500s">1/500s</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Camera Quality */}
-            <div className="space-y-1">
-              <Label className="text-xs">Camera Quality</Label>
-              <Select value={cameraQuality} onValueChange={setCameraQuality}>
-                <SelectTrigger className="text-xs">
+              <Select value={cameraSettings.lens} onValueChange={(v) => setCameraSettings(prev => ({...prev, lens: v}))}>
+                <SelectTrigger className="h-7 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="cellphone">Cellphone</SelectItem>
-                  <SelectItem value="polaroid">Polaroid</SelectItem>
+                  <SelectItem value="24mm">24mm</SelectItem>
+                  <SelectItem value="35mm">35mm</SelectItem>
+                  <SelectItem value="50mm">50mm</SelectItem>
+                  <SelectItem value="85mm">85mm</SelectItem>
+                  <SelectItem value="135mm">135mm</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={cameraSettings.aperture} onValueChange={(v) => setCameraSettings(prev => ({...prev, aperture: v}))}>
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="f/1.4">f/1.4</SelectItem>
+                  <SelectItem value="f/1.8">f/1.8</SelectItem>
+                  <SelectItem value="f/2.8">f/2.8</SelectItem>
+                  <SelectItem value="f/4">f/4</SelectItem>
+                  <SelectItem value="f/5.6">f/5.6</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={cameraSettings.shutter} onValueChange={(v) => setCameraSettings(prev => ({...prev, shutter: v}))}>
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1/30s">1/30s</SelectItem>
+                  <SelectItem value="1/60s">1/60s</SelectItem>
+                  <SelectItem value="1/125s">1/125s</SelectItem>
+                  <SelectItem value="1/250s">1/250s</SelectItem>
+                  <SelectItem value="1/500s">1/500s</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Aspect Ratio & Enforce */}
+          <div className="flex gap-2">
+            <Select value={aspectRatio} onValueChange={setAspectRatio} >
+              <SelectTrigger className="flex-1 h-7 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1:1">1:1 Square</SelectItem>
+                <SelectItem value="4:3">4:3 Standard</SelectItem>
+                <SelectItem value="16:9">16:9 Widescreen</SelectItem>
+                <SelectItem value="21:9">21:9 Cinematic</SelectItem>
+                <SelectItem value="9:16">9:16 Portrait</SelectItem>
+              </SelectContent>
+            </Select>
+            <TooltipProvider>
+              <Tooltip delayDuration={2000}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={enforceAspect ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setEnforceAspect(!enforceAspect)}
+                    className="h-7 px-3 text-xs"
+                  >
+                    Enforce
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Enforce aspect ratio on all references</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          {/* Style Selection - Icon Buttons */}
+          <div className="space-y-2">
+            <Label className="text-xs">Style</Label>
+            <div className="grid grid-cols-4 gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={styleType === "cartoon" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setStyleType("cartoon")}
+                      className="h-9 flex flex-col gap-0.5 p-1"
+                    >
+                      <Palette className="w-4 h-4" />
+                      <span className="text-[9px]">Cartoon</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Cartoon/Manga style</p></TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={styleType === "drawing" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setStyleType("drawing")}
+                      className="h-9 flex flex-col gap-0.5 p-1"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      <span className="text-[9px]">Drawing</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Hand-drawn sketch</p></TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={styleType === "painting" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setStyleType("painting")}
+                      className="h-9 flex flex-col gap-0.5 p-1"
+                    >
+                      <Brush className="w-4 h-4" />
+                      <span className="text-[9px]">Painting</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Oil/watercolor painting</p></TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={styleType === "photo" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setStyleType("photo")}
+                      className="h-9 flex flex-col gap-0.5 p-1"
+                    >
+                      <Camera className="w-4 h-4" />
+                      <span className="text-[9px]">Photo</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Photorealistic</p></TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+
+          {/* Quality Settings - Side by Side */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Camera Quality</Label>
+              <Select value={cameraQuality} onValueChange={setCameraQuality}>
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="standard">Standard</SelectItem>
                   <SelectItem value="dslr">DSLR</SelectItem>
                   <SelectItem value="imax">IMAX</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Quality */}
             <div className="space-y-1">
-              <Label className="text-xs">Generation Quality</Label>
-              <Select value={quality} onValueChange={setQuality}>
-                <SelectTrigger className="text-xs">
+              <Label className="text-xs">Gen Quality</Label>
+              <Select value={generationQuality} onValueChange={setGenerationQuality}>
+                <SelectTrigger className="h-7 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="fast">Fast</SelectItem>
                   <SelectItem value="balanced">Balanced</SelectItem>
-                  <SelectItem value="high">High Quality</SelectItem>
+                  <SelectItem value="quality">Quality</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Style Realism Slider */}
-            <div className="space-y-2">
-              <Label className="text-xs">Style Realism</Label>
-              <Slider
-                value={realism}
-                onValueChange={setRealism}
-                min={0}
-                max={100}
-                step={1}
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Cartoon</span>
-                <span>{realism[0]}%</span>
-                <span>Photorealistic</span>
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+          </div>
+        </div>
 
         <Separator />
 
         {/* Analysis & Final Prompt */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs font-semibold">Analysis & Final Prompt</Label>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 text-xs"
-              onClick={() => toast.success('AI Co-pilot analyzing...')}
-            >
-              <Activity className="w-3 h-3 mr-1" />
-              Analyze
-            </Button>
-          </div>
+        <div className="space-y-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => toast.success('AI analyzing prompt...')}
+            className="w-full text-xs"
+          >
+            <Activity className="w-3 h-3 mr-2" />
+            Analyze Prompt (AI Co-pilot)
+          </Button>
 
           {/* Complexity Meter */}
           <div className="space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Complexity</span>
-              <span className="font-medium">{analyzeComplexity()}%</span>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Complexity Meter</Label>
+              <span className="text-xs text-muted-foreground">{analyzeComplexity()}%</span>
             </div>
-            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-              <div 
+            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+              <div
                 className="h-full bg-primary transition-all"
                 style={{ width: `${analyzeComplexity()}%` }}
               />
             </div>
           </div>
 
-          {/* Final Prompt */}
-          <Collapsible open={showFinalPrompt} onOpenChange={setShowFinalPrompt}>
-            <CollapsibleTrigger asChild>
-              <Button variant="outline" size="sm" className="w-full text-xs">
-                {showFinalPrompt ? 'Hide' : 'Show'} Assembled Prompt
-              </Button>
-            </CollapsibleTrigger>
-            
-            <CollapsibleContent className="mt-2">
-              <div className="bg-muted rounded p-3 text-xs font-mono max-h-60 overflow-auto whitespace-pre-wrap">
+          {/* Assembled Prompt - Always Visible */}
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold">Assembled Prompt</Label>
+            <div className="p-3 bg-muted/50 rounded border border-border max-h-40 overflow-y-auto">
+              <div className="text-[10px] space-y-1 font-mono whitespace-pre-wrap">
                 {assembleFinalPrompt()}
               </div>
-            </CollapsibleContent>
-          </Collapsible>
+            </div>
+          </div>
         </div>
 
         {/* Generate Button */}

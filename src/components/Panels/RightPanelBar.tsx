@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Layers, Settings, Wand2, X, Sparkles, MessageSquare, ZoomIn, FolderOpen } from 'lucide-react';
+import { Layers, Settings, Wand2, X, Sparkles, MessageSquare, ZoomIn, FolderOpen, Focus } from 'lucide-react';
 
-type PanelType = 'layers' | 'inspector' | 'effects' | 'ai-generate' | 'ai-chat' | 'magnifier' | 'assets' | null;
+type PanelType = 'layers' | 'inspector' | 'effects' | 'ai-generate' | 'ai-chat' | 'magnifier' | 'microscope' | 'assets' | null;
 type PanelSize = 'full' | 'top' | 'bottom';
 
 interface RightPanelBarProps {
@@ -32,7 +32,8 @@ export const RightPanelBar: React.FC<RightPanelBarProps> = ({ onPanelChange }) =
     { id: 'effects' as PanelType, icon: Wand2, label: 'Effects' },
     { id: 'ai-generate' as PanelType, icon: Sparkles, label: 'AI Generate' },
     { id: 'ai-chat' as PanelType, icon: MessageSquare, label: 'AI Chat' },
-    { id: 'magnifier' as PanelType, icon: ZoomIn, label: 'Magnifier' },
+    { id: 'magnifier' as PanelType, icon: ZoomIn, label: 'Cursor Zoom' },
+    { id: 'microscope' as PanelType, icon: Focus, label: 'Microscope' },
     { id: 'assets' as PanelType, icon: FolderOpen, label: 'Assets' },
   ];
 

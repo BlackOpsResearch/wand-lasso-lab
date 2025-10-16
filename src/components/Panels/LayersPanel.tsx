@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Eye, EyeOff, Lock, Unlock, Trash2, Settings, Plus, Upload } from 'lucide-react';
+import { Eye, EyeOff, Lock, Unlock, Trash2, Settings, Plus, Upload, ChevronDown, ChevronUp } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLayerContext } from '@/components/Context/LayerContext';
 import { cn } from '@/lib/utils';
@@ -217,17 +217,22 @@ export const LayersPanel: React.FC = () => {
                       <TooltipTrigger asChild>
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="w-5 h-5"
+                          size="sm"
+                          className="h-6 px-2 text-[10px] gap-1"
                           onClick={(e) => {
                             e.stopPropagation();
                             setExpandedModifiers(prev => ({ ...prev, [layer.id]: !prev[layer.id] }));
                           }}
                         >
-                          <Settings className="w-3 h-3" />
+                          MODS
+                          {isExpanded ? (
+                            <ChevronUp className="h-3 w-3" />
+                          ) : (
+                            <ChevronDown className="h-3 w-3" />
+                          )}
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>Settings</TooltipContent>
+                      <TooltipContent>Layer Modifiers</TooltipContent>
                     </Tooltip>
 
                     <Tooltip>
