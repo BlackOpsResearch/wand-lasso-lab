@@ -5,9 +5,12 @@ import { Slider } from '@/components/ui/slider';
 import { 
   Settings, User, FileText, Plus, Ruler, Crosshair, Magnet, 
   Monitor, SplitSquareHorizontal, ZoomIn, Undo, Redo, History,
-  Mic, Volume2, AlignHorizontalJustifyCenter
+  Mic, Volume2, AlignHorizontalJustifyCenter, Image, Music, Film,
+  LayoutGrid, Users, Box, Sparkles
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 interface CDETopBarProps {
   projectName?: string;
@@ -34,6 +37,19 @@ export const CDETopBar: React.FC<CDETopBarProps> = ({
   const [showMag1Slider, setShowMag1Slider] = useState(false);
   const [showMag2Slider, setShowMag2Slider] = useState(false);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+  
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const pages = [
+    { path: '/', label: 'Images', icon: Image },
+    { path: '/audio', label: 'Audio', icon: Music },
+    { path: '/video', label: 'Video', icon: Film },
+    { path: '/storyboard', label: 'Storyboard', icon: LayoutGrid },
+    { path: '/characters', label: 'Characters', icon: Users },
+    { path: '/props-scenes', label: 'Props/Scenes', icon: Box },
+    { path: '/effects', label: 'Effects', icon: Sparkles },
+  ];
 
   return (
     <div className="h-14 bg-editor-toolbar border-b border-border flex items-center px-4 gap-3">
@@ -66,7 +82,36 @@ export const CDETopBar: React.FC<CDETopBarProps> = ({
           <TooltipContent>Project Settings</TooltipContent>
         </Tooltip>
 
-        <Separator orientation="vertical" className="h-6" />
+      <Separator orientation="vertical" className="h-6" />
+
+      {/* Page Navigation */}
+      <div className="flex items-center gap-1">
+        {pages.map((page) => {
+          const Icon = page.icon;
+          const isActive = location.pathname === page.path;
+          return (
+            <Tooltip key={page.path}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={isActive ? 'default' : 'ghost'}
+                  size="sm"
+                  className={cn(
+                    "h-8 px-3 text-xs gap-1.5",
+                    isActive && "bg-primary text-primary-foreground"
+                  )}
+                  onClick={() => navigate(page.path)}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {page.label}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{page.label} Editor</TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </div>
+
+      <Separator orientation="vertical" className="h-6" />
 
         <Button variant="outline" size="sm" className="text-xs">
           {projectName}
