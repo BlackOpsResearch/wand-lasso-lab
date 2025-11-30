@@ -8,14 +8,16 @@ import { AssetsPanel } from '@/components/Panels/AssetsPanel';
 import { AudioWaveformPanel } from '@/components/Panels/AudioWaveformPanel';
 import { AudioEffectsPanel } from '@/components/Panels/AudioEffectsPanel';
 import { ToolSettingsPanelCompact } from '@/components/Panels/ToolSettingsPanelCompact';
+import { ToolProvider } from '@/components/Context/ToolContext';
 
 export const AudioPage: React.FC = () => {
   const [settingsCollapsed, setSettingsCollapsed] = useState(false);
   const [activePanel, setActivePanel] = useState<'waveform' | 'effects' | 'ai-chat' | 'assets' | null>(null);
 
   return (
-    <div className="min-h-screen bg-editor-bg text-foreground flex flex-col w-full">
-      <CDETopBar />
+    <ToolProvider>
+      <div className="min-h-screen bg-editor-bg text-foreground flex flex-col w-full">
+        <CDETopBar />
 
       <div className="flex-1 flex overflow-hidden">
         <ToolSettingsPanelCompact collapsed={settingsCollapsed} />
@@ -47,7 +49,8 @@ export const AudioPage: React.FC = () => {
         />
       </div>
 
-      <BottomBar />
-    </div>
+        <BottomBar />
+      </div>
+    </ToolProvider>
   );
 };
