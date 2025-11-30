@@ -8,14 +8,16 @@ import { AssetsPanel } from '@/components/Panels/AssetsPanel';
 import { EffectsLibraryPanel } from '@/components/Panels/EffectsLibraryPanel';
 import { EffectsComposerPanel } from '@/components/Panels/EffectsComposerPanel';
 import { ToolSettingsPanelCompact } from '@/components/Panels/ToolSettingsPanelCompact';
+import { ToolProvider } from '@/components/Context/ToolContext';
 
 export const EffectsPage: React.FC = () => {
   const [settingsCollapsed, setSettingsCollapsed] = useState(false);
   const [activePanel, setActivePanel] = useState<'library' | 'composer' | 'ai-chat' | 'assets' | null>(null);
 
   return (
-    <div className="min-h-screen bg-editor-bg text-foreground flex flex-col w-full">
-      <CDETopBar />
+    <ToolProvider>
+      <div className="min-h-screen bg-editor-bg text-foreground flex flex-col w-full">
+        <CDETopBar />
 
       <div className="flex-1 flex overflow-hidden">
         <ToolSettingsPanelCompact collapsed={settingsCollapsed} />
@@ -47,7 +49,8 @@ export const EffectsPage: React.FC = () => {
         />
       </div>
 
-      <BottomBar />
-    </div>
+        <BottomBar />
+      </div>
+    </ToolProvider>
   );
 };
